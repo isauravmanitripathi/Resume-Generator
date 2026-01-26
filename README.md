@@ -1,6 +1,8 @@
-# sv
+# I Need A Resume
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Me and some of my friends were tired of paying for resume services. We wanted to create our own resume service that was affordable and easy to use. You just bring your own api keys and we'll handle the rest.
+
+We have just started to work on this, so expect a lot of changes and updates.
 
 ## Creating a project
 

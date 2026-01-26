@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@media print {
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  body * {
+    visibility: hidden;
+  }
+  #resume-canvas,
+  #resume-canvas * {
+    visibility: visible;
+  }
+  #resume-canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    height: 297mm;
+    box-shadow: none;
+    border: none;
+  }
+  /* Hide drag handles and UI overlays */
+  .ui-handle,
+  .grid-lines {
+    display: none !important;
+  }
+}
