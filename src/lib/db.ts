@@ -70,15 +70,28 @@ export interface CanvasItem {
   style: any;
 }
 
+export interface AppSettings {
+  id: string; // Singleton "app"
+  providers: {
+    openai: { key: string; model: string };
+    gemini: { key: string; model: string };
+    anthropic: { key: string; model: string };
+    grok: { key: string; model: string };
+  };
+  activeProvider: 'openai' | 'gemini' | 'anthropic' | 'grok';
+}
+
 export class ResumeDatabase extends Dexie {
   profile!: Table<Profile>;
   resumes!: Table<ResumeVersion>;
+  settings!: Table<AppSettings>;
 
   constructor() {
     super('INeedAResumeDB');
     this.version(1).stores({
       profile: 'id', // Singleton, usually just one row with id='master'
-      resumes: 'id, created, name'
+      resumes: 'id, created, name',
+      settings: 'id'
     });
   }
 }
