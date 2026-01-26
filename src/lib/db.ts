@@ -3,28 +3,45 @@ import Dexie, { type Table } from 'dexie';
 export interface Profile {
   id: string; // Singleton "master"
   basics: {
-    name: string;
+    firstName: string;
+    middleName: string;
+    lastName: string;
     email: string;
     phone: string;
-    url: string;
+    countryCode: string;
+    address: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
     summary: string;
-    location: string;
+    title: string;
+  };
+  socials: {
+    linkedin: string;
+    github: string;
+    twitter: string;
+    youtube: string;
+    instagram: string;
+    website: string;
   };
   experience: ExperienceItem[];
   education: EducationItem[];
   skills: SkillItem[];
   projects: ProjectItem[];
+  achievements: AchievementItem[];
+  publications: PublicationItem[];
 }
 
 export interface ExperienceItem {
   id: string;
   company: string;
   role: string;
+  location: string;
   startDate: string;
   endDate: string;
   current: boolean;
-  location: string;
-  raw_context: string; // The "blob" for AI
+  raw_context: string;
 }
 
 export interface EducationItem {
@@ -35,12 +52,14 @@ export interface EducationItem {
   startDate: string;
   endDate: string;
   score: string;
+  location: string;
 }
 
 export interface SkillItem {
   id: string;
   name: string;
-  level: string;
+  level: string; // Beginner, Intermediate, Expert
+  category: string; // Hardware, Software, Soft Skill
 }
 
 export interface ProjectItem {
@@ -50,6 +69,24 @@ export interface ProjectItem {
   url: string;
   raw_context: string;
 }
+
+export interface AchievementItem {
+  id: string;
+  title: string;
+  date: string;
+  issuer: string;
+  description: string;
+}
+
+export interface PublicationItem {
+  id: string;
+  name: string;
+  publisher: string;
+  releaseDate: string;
+  url: string;
+  summary: string;
+}
+
 
 export interface ResumeVersion {
   id: string;
