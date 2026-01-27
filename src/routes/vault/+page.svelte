@@ -82,6 +82,29 @@
     }
   }
 
+  function clearVault() {
+    if (confirm('Are you sure you want to clear all your vault data? This cannot be undone.')) {
+      profile = {
+        id: 'master',
+        basics: {
+          firstName: '', middleName: '', lastName: '', email: '', phone: '',
+          countryCode: '', address: '', city: '', state: '', zipCode: '',
+          country: '', summary: '', title: ''
+        },
+        socials: {
+          linkedin: '', github: '', twitter: '', youtube: '', instagram: '', website: ''
+        },
+        experience: [],
+        education: [],
+        skills: [],
+        projects: [],
+        achievements: [],
+        publications: []
+      };
+      save();
+    }
+  }
+
   const tabs = [
     { id: 'basics', label: 'Basics', icon: User },
     { id: 'location', label: 'Contact', icon: MapPin },
@@ -110,8 +133,14 @@
         </span>
       {/if}
       <button 
+        onclick={clearVault}
+        class="px-4 py-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all text-sm font-semibold"
+      >
+        Clear All
+      </button>
+      <button 
         onclick={save}
-        class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+        class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
       >
         Save Now
       </button>
@@ -224,23 +253,23 @@
               <div class="space-y-4">
                 <h3 class="text-sm font-bold text-slate-700">Digital Links</h3>
                 <div class="grid grid-cols-1 gap-3">
-                  <div class="relative">
-                    <Linkedin size={16} class="absolute left-3 top-3 text-slate-400" />
+                  <div class="relative flex items-center">
+                    <Linkedin size={16} class="absolute left-3 text-slate-400 pointer-events-none" />
                     <label for="linkedin" class="sr-only">LinkedIn</label>
                     <input id="linkedin" bind:value={profile.socials.linkedin} oninput={save} class="input-field pl-10" placeholder="LinkedIn URL" />
                   </div>
-                  <div class="relative">
-                    <Github size={16} class="absolute left-3 top-3 text-slate-400" />
+                  <div class="relative flex items-center">
+                    <Github size={16} class="absolute left-3 text-slate-400 pointer-events-none" />
                     <label for="github" class="sr-only">GitHub</label>
                     <input id="github" bind:value={profile.socials.github} oninput={save} class="input-field pl-10" placeholder="GitHub URL" />
                   </div>
-                  <div class="relative">
-                    <Twitter size={16} class="absolute left-3 top-3 text-slate-400" />
+                  <div class="relative flex items-center">
+                    <Twitter size={16} class="absolute left-3 text-slate-400 pointer-events-none" />
                     <label for="twitter" class="sr-only">Twitter</label>
                     <input id="twitter" bind:value={profile.socials.twitter} oninput={save} class="input-field pl-10" placeholder="X (Twitter) URL" />
                   </div>
-                  <div class="relative">
-                    <Globe size={16} class="absolute left-3 top-3 text-slate-400" />
+                  <div class="relative flex items-center">
+                    <Globe size={16} class="absolute left-3 text-slate-400 pointer-events-none" />
                     <label for="website" class="sr-only">Website</label>
                     <input id="website" bind:value={profile.socials.website} oninput={save} class="input-field pl-10" placeholder="Portfolio/Website" />
                   </div>
@@ -262,7 +291,7 @@
 
             {#each profile.experience as exp (exp.id)}
               <div class="p-6 border border-slate-100 bg-slate-50/30 rounded-2xl relative group">
-                <button onclick={() => remove('experience', exp.id)} class="absolute right-4 top-4 text-slate-300 hover:text-red-500 transition-colors">
+                <button onclick={() => remove('experience', exp.id)} class="absolute right-3 top-3 p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm md:opacity-0 group-hover:opacity-100">
                   <Trash2 size={18} />
                 </button>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -298,7 +327,7 @@
 
             {#each profile.education as edu (edu.id)}
               <div class="p-6 border border-slate-100 bg-slate-50/30 rounded-2xl relative group">
-                <button onclick={() => remove('education', edu.id)} class="absolute right-4 top-4 text-slate-300 hover:text-red-500 transition-colors">
+                <button onclick={() => remove('education', edu.id)} class="absolute right-3 top-3 p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm md:opacity-0 group-hover:opacity-100">
                   <Trash2 size={18} />
                 </button>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -356,8 +385,8 @@
                 </button>
               </div>
               {#each profile.achievements as ach (ach.id)}
-                <div class="p-4 border border-slate-100 bg-slate-50 rounded-2xl relative">
-                  <button onclick={() => remove('achievements', ach.id)} class="absolute right-3 top-3 text-slate-300 hover:text-red-500">
+                <div class="p-4 border border-slate-100 bg-slate-50 rounded-2xl relative group">
+                  <button onclick={() => remove('achievements', ach.id)} class="absolute right-3 top-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm md:opacity-0 group-hover:opacity-100">
                     <Trash2 size={16} />
                   </button>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -379,8 +408,8 @@
                 </button>
               </div>
               {#each profile.publications as pub (pub.id)}
-                <div class="p-4 border border-slate-100 bg-slate-50 rounded-2xl relative">
-                  <button onclick={() => remove('publications', pub.id)} class="absolute right-3 top-3 text-slate-300 hover:text-red-500">
+                <div class="p-4 border border-slate-100 bg-slate-50 rounded-2xl relative group">
+                  <button onclick={() => remove('publications', pub.id)} class="absolute right-3 top-3 p-1.5 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm md:opacity-0 group-hover:opacity-100">
                     <Trash2 size={16} />
                   </button>
                   <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
