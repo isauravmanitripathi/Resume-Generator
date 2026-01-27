@@ -23,6 +23,7 @@
   $effect(() => {
     if (activeResumeId && selectedTemplate && activeResume && activeResume.templateId !== selectedTemplate) {
       db.resumes.update(activeResumeId, { templateId: selectedTemplate });
+      activeResume.templateId = selectedTemplate; // Keep local state in sync
     }
   });
 
@@ -467,7 +468,7 @@
           <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
             <ResumePreview 
               profile={appliedProfile} 
-              templateId={activeResume?.templateId || selectedTemplate} 
+              templateId={selectedTemplate} 
               customCode={activeResume?.customCode || customCode} 
             />
           </div>
