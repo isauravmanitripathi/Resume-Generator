@@ -20,7 +20,8 @@
   let selectedTemplate = $state('classic');
   
   $effect(() => {
-    if (activeResumeId && selectedTemplate) {
+    // Guard: Only update DB if the template actually changed from what is stored
+    if (activeResumeId && selectedTemplate && activeResume && activeResume.templateId !== selectedTemplate) {
       db.resumes.update(activeResumeId, { templateId: selectedTemplate });
     }
   });
@@ -38,8 +39,13 @@
   // Sync template/code when active resume changes
   $effect(() => {
     if (activeResume) {
-      if (activeResume.templateId) selectedTemplate = activeResume.templateId;
-      if (activeResume.customCode) customCode = activeResume.customCode;
+      // Use untrack? No, we want to react to activeResume switching
+      if (activeResume.templateId && activeResume.templateId !== selectedTemplate) {
+        selectedTemplate = activeResume.templateId;
+      }
+      if (activeResume.customCode && activeResume.customCode !== customCode) {
+        customCode = activeResume.customCode;
+      }
     }
   });
 
