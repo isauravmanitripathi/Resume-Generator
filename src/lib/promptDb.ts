@@ -36,8 +36,8 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
         id: 'summary-gen',
         name: 'Summary Generation',
         description: 'Generates a professional summary based on profile and JD.',
-        systemPrompt: 'You are an expert career coach. Create a compelling, concise professional summary (2-3 sentences) for a resume.',
-        userPromptTemplate: 'Profile Data:\n{{profileSummary}}\n\nJob Description:\n{{jobDescription}}\n\nGenerate a professional summary. Return only the text without any headings or labels.',
+        systemPrompt: 'You are an expert career coach. Create a compelling, concise professional summary (2-3 sentences) for a resume.\nIMPORTANT: Return your response strictly as a JSON object: {"tailored_content": "your content here"}. Do not include markdown code blocks or any other text.',
+        userPromptTemplate: 'Profile Data:\n{{profileSummary}}\n\nJob Description:\n{{jobDescription}}\n\nGenerate a professional summary. Return ONLY the JSON object.',
         isCustom: false
     },
     'skill-extract': {

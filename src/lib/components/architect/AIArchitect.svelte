@@ -88,10 +88,19 @@
       
       let tailoredContent = "";
       try {
-        const parsed = JSON.parse(rawResponse);
+        // Attempt to clean the response if it contains markdown or extra text
+        let cleanJson = rawResponse.trim();
+        // Extract JSON if embedded in text
+        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanJson = jsonMatch[0];
+        }
+
+        const parsed = JSON.parse(cleanJson);
         tailoredContent = parsed.tailored_content || rawResponse;
       } catch (e) {
-        tailoredContent = rawResponse; // Fallback
+        // Fallback: If JSON fails, strip know prefixes if possible, or just use raw
+        tailoredContent = rawResponse.replace(/^Professional Summary:\s*/i, '').trim();
       }
 
       // Notify parent to refresh/preview
