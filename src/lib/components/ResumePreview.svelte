@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Profile } from '$lib/db';
   import IframeRenderer from './IframeRenderer.svelte';
+  import CreativeStudio from './creative/CreativeStudio.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
     Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2
@@ -120,6 +121,10 @@
   <div class="h-full flex items-center justify-center py-4">
      <IframeRenderer html={customCode || ''} {profile} />
   </div>
+
+{:else if templateId === 'blank'}
+  <!-- Creative Studio (Drag & Drop) -->
+  <CreativeStudio {profile} />
 
 {:else}
   <!-- Standard Templates (Classic / Modern / Minimal) -->
@@ -331,9 +336,6 @@
       </div>
     </div>
 
-  {:else if templateId === 'blank'}
-    <!-- Blank Template -->
-    <div class="h-full w-full bg-white"></div>
   {/if}
   </div>
 {/if}
