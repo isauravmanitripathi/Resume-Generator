@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles, Code, Database, Hammer } from 'lucide-svelte';
+  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles, Code, Database, Hammer, Shield } from 'lucide-svelte';
   import CustomThemeEditor from '$lib/components/architect/studio/CustomThemeEditor.svelte';
 
   interface Props {
@@ -17,6 +17,7 @@
     { id: 'classic', name: 'Classic', icon: FileText, desc: 'Professional 2-column' },
     { id: 'modern', name: 'Modern', icon: Layout, desc: 'High-impact design' },
     { id: 'minimal', name: 'Minimal', icon: MousePointer2, desc: 'Clean & simple' },
+    { id: 'executive', name: 'Executive', icon: Shield, desc: 'Bold & authoritative' },
     { id: 'blank', name: 'Blank', icon: Eraser, desc: 'Empty canvas' },
     { id: 'custom', name: 'Custom', icon: Code, desc: 'Dev Mode' },
   ];
@@ -80,6 +81,19 @@
                  <div class="grid grid-cols-2 gap-1 w-full">
                    <div class="h-4 bg-slate-50"></div>
                    <div class="h-4 bg-slate-50"></div>
+                 </div>
+               </div>
+            {:else if t.id === 'executive'}
+               <!-- Executive Preview -->
+               <div class="h-full flex flex-col">
+                 <div class="h-1/4 bg-slate-900 w-full mb-1"></div>
+                 <div class="flex-1 flex gap-1 p-1">
+                   <div class="w-1/3 h-full bg-slate-50 rounded-sm"></div>
+                   <div class="w-2/3 h-full flex flex-col gap-1">
+                     <div class="w-full h-2 bg-slate-100"></div>
+                     <div class="w-full h-1 bg-slate-50"></div>
+                     <div class="w-full h-1 bg-slate-50"></div>
+                   </div>
                  </div>
                </div>
             {:else}

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { db, type AppSettings } from '$lib/db';
-  import { Shield, Save, RefreshCw, Key, Info, Settings } from 'lucide-svelte';
+  import { promptDb, initializePrompts, type PromptTemplate } from '$lib/promptDb';
+  import { Shield, Save, RefreshCw, Key, Info, Settings, Sparkles, Database, FileText, Layout, ArrowLeft } from 'lucide-svelte';
+  import PromptSettings from '$lib/components/settings/PromptSettings.svelte';
 
   let settings = $state<AppSettings>({
     id: 'app',
@@ -15,6 +17,7 @@
   });
 
   let saving = $state(false);
+  let activeTab = $state<'providers' | 'prompts'>('providers');
 
   const openaiModels = [
     { id: 'gpt-5.2', name: 'GPT-5.2', desc: 'The best model for coding and agentic tasks across industries' },
@@ -44,6 +47,7 @@
   ];
 
   onMount(async () => {
+    await initializePrompts();
     const saved = await db.settings.get('app');
     if (saved) {
       settings = saved;
@@ -61,17 +65,38 @@
 </script>
 
 <div class="p-8 max-w-5xl mx-auto pb-24">
-  <header class="mb-10">
-    <div class="flex items-center gap-3 mb-2">
-      <div class="p-2 bg-blue-600 text-white rounded-lg">
-        <Settings size={24} />
+  <header class="mb-10 flex items-end justify-between">
+    <div>
+      <div class="flex items-center gap-3 mb-2">
+        <div class="p-2 bg-blue-600 text-white rounded-lg">
+          <Settings size={24} />
+        </div>
+        <h1 class="text-3xl font-bold text-slate-900">Settings</h1>
       </div>
-      <h1 class="text-3xl font-bold text-slate-900">Settings</h1>
+      <p class="text-slate-500">Securely manage your AI provider configurations and prompt templates.</p>
     </div>
-    <p class="text-slate-500">Securely manage your AI provider configurations. All keys are stored locally in your browser's IndexedDB.</p>
+
+    <!-- Tab Switcher -->
+    <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+      <button 
+        onclick={() => activeTab = 'providers'}
+        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        {activeTab === 'providers' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
+      >
+        Providers
+      </button>
+      <button 
+        onclick={() => activeTab = 'prompts'}
+        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        {activeTab === 'prompts' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
+      >
+        Prompts
+      </button>
+    </div>
   </header>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+  {#if activeTab === 'providers'}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
     
     <!-- OpenAI -->
     <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -249,7 +274,12 @@
       </div>
     </div>
 
-  </div>
+    </div>
+  {:else}
+    <div class="animate-fade-in">
+      <PromptSettings />
+    </div>
+  {/if}
 
   <div class="fixed bottom-0 right-0 left-0 md:left-64 p-4 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 bg-white/60 backdrop-blur-md border-t border-slate-200 md:bg-transparent md:border-none z-30">
     <div class="bg-slate-900/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-[10px] sm:text-xs font-medium text-slate-600 flex items-center gap-2">

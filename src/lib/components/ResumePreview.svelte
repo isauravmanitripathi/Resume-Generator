@@ -2,6 +2,7 @@
   import type { Profile } from '$lib/db';
   import IframeRenderer from './IframeRenderer.svelte';
   import CreativeStudio from './creative/CreativeStudio.svelte';
+  import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
     Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2
@@ -336,6 +337,8 @@
       </div>
     </div>
 
+    {:else if templateId === 'executive'}
+      <ExecutiveTemplate {profile} />
   {/if}
   </div>
 {/if}
