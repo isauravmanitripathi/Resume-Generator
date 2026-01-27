@@ -3,7 +3,7 @@
   import IframeRenderer from './IframeRenderer.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
-    Smartphone, Mail, Linkedin, Github, Globe
+    Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2
   } from 'lucide-svelte';
 
   interface Props {
@@ -13,16 +13,117 @@
   }
 
   let { profile, templateId, customCode } = $props<Props>();
+  let isDownloading = $state(false);
+
+  async function handleDownload() {
+    if (isDownloading) return;
+    isDownloading = true;
+
+    // Give UI time to paint the loading state
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    try {
+      // Dynamic import
+      const html2pdf = (await import('html2pdf.js')).default;
+      
+      let element: HTMLElement;
+      
+      if (templateId === 'custom') {
+        // For Custom Templates, strictly capture the iframe content
+        const iframe = document.querySelector('iframe[title="Resume Canvas"]') as HTMLIFrameElement;
+        // @ts-ignore
+        element = iframe?.contentDocument?.documentElement || iframe?.contentDocument?.body;
+        
+        if (!element) throw new Error("Could not access custom template content");
+      } else {
+        element = document.getElementById('resume-preview') as HTMLElement;
+      }
+
+      // Optimized settings
+      const opt = {
+        margin:       0,
+        filename:     `${profile.basics.firstName}_${profile.basics.lastName}_Resume.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { 
+          scale: 2, // Restoring higher quality (scale 1 is too blurry for text sometimes, let's try 2 safely or 1.5)
+          useCORS: true, 
+          logging: false,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+
+    } catch (e) {
+      console.error('PDF Gen Error', e);
+      // Last resort fallback
+      if (templateId === 'custom') {
+         const iframe = document.querySelector('iframe[title="Resume Canvas"]') as HTMLIFrameElement;
+         iframe?.contentWindow?.print();
+      } else {
+         window.print();
+      }
+    } finally {
+      isDownloading = false;
+    }
+  }
 </script>
 
+<div class="fixed bottom-8 right-8 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
+  <button 
+    onclick={handleDownload}
+    disabled={isDownloading}
+    class="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-black hover:scale-105 transition-all text-sm disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+  >
+    {#if isDownloading}
+      <Loader2 size={16} class="animate-spin" />
+      <span>Generating...</span>
+    {:else}
+      <Download size={16} />
+      <span>Download PDF</span>
+    {/if}
+  </button>
+</div>
+
+<!-- Print Styles (Native Fallback) -->
+<svelte:head>
+  <style>
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #resume-preview, #resume-preview * {
+        visibility: visible;
+      }
+      #resume-preview {
+        position: fixed !important; /* Fixed ensures it overlays everything at top-left */
+        left: 0;
+        top: 0;
+        z-index: 9999;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+      }
+      @page {
+        margin: 0;
+        size: A4;
+      }
+    }
+  </style>
+</svelte:head>
+
 {#if templateId === 'custom'}
-  <div class="h-full flex items-start justify-center pt-8 pb-32">
+  <div class="h-full flex items-center justify-center py-4">
      <IframeRenderer html={customCode || ''} {profile} />
   </div>
 
 {:else}
   <!-- Standard Templates (Classic / Modern / Minimal) -->
-  <div class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-y-auto relative print:shadow-none" 
+  <div id="resume-preview" class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-y-auto relative print:shadow-none" 
        style="width: 210mm; height: 297mm; min-width: 210mm; min-height: 297mm;">
 
   {#if templateId === 'classic'}

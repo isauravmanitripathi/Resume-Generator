@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"dexie": "^4.2.1",
+		"html2pdf.js": "^0.14.0",
 		"iconify-icon": "^3.0.2",
 		"lucide-svelte": "^0.563.0",
 		"uuid": "^13.0.0",

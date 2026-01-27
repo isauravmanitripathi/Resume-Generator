@@ -55,10 +55,15 @@
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
             *, *::before, *::after { box-sizing: border-box; }
-            html, body { margin: 0; padding: 0; width: 100%; min-height: 100%; }
+            html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
             body {
               font-family: system-ui, -apple-system, sans-serif;
               background: white;
+              width: 210mm;
+              height: 297mm;
+              margin: 0 auto;
+              padding: 0;
+              overflow: hidden; /* Prevent scrollbars */
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }

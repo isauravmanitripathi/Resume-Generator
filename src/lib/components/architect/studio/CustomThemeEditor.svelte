@@ -2,7 +2,7 @@
   import { X, Code, Play, AlertCircle, Save, Trash2, FileCode, Plus } from 'lucide-svelte';
   import { fade, fly } from 'svelte/transition';
   import { db, type CustomTemplate } from '$lib/db';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
 
   interface Props {
     onClose: () => void;
@@ -57,7 +57,8 @@
 </body>
 </html>`;
 
-  let code = $state(initialCode || defaultTemplate);
+  // Use untrack to explicitly acknowledge we only want the initial value here, silencing the warning
+  let code = $state(untrack(() => initialCode) || defaultTemplate);
   let savedTemplates = $state<CustomTemplate[]>([]);
   let templateName = $state('');
 
