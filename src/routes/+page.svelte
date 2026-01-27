@@ -31,12 +31,16 @@
     const saved = await db.profile.get('master');
     if (saved) {
       profile = saved;
+      if (saved.customTemplate) customCode = saved.customTemplate;
     }
   });
 
   async function refreshData() {
     const saved = await db.profile.get('master');
-    if (saved) profile = saved;
+    if (saved) {
+      profile = saved;
+      if (saved.customTemplate) customCode = saved.customTemplate;
+    }
   }
 
   function handleGenerate() {
@@ -45,6 +49,12 @@
       isGenerating = false;
       alert('AI Generation Mock: Resume tailored!');
     }, 2000);
+  }
+
+  async function handleSaveCustomCode(code: string) {
+    customCode = code;
+    // Persist to DB
+    await db.profile.update('master', { customTemplate: code });
   }
 </script>
 
@@ -132,8 +142,9 @@
         {:else if activeSubTab === 'design'}
           <ThemeSelector 
             selectedTemplate={selectedTemplate} 
+            customCode={customCode}
             onSelect={(id) => selectedTemplate = id} 
-            onUpdateCustomCode={(code) => customCode = code}
+            onUpdateCustomCode={handleSaveCustomCode}
           />
 
         {:else if activeSubTab === 'creative'}

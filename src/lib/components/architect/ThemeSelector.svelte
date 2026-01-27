@@ -4,11 +4,12 @@
 
   interface Props {
     selectedTemplate: string;
+    customCode?: string;
     onSelect: (id: string) => void;
     onUpdateCustomCode?: (code: string) => void;
   }
 
-  let { selectedTemplate, onSelect, onUpdateCustomCode } = $props<Props>();
+  let { selectedTemplate, customCode = '', onSelect, onUpdateCustomCode } = $props<Props>();
 
   let showEditor = $state(false);
 
@@ -23,6 +24,7 @@
 
 {#if showEditor}
   <CustomThemeEditor 
+    initialCode={customCode}
     onClose={() => showEditor = false} 
     onSave={(code) => {
       if(onUpdateCustomCode) onUpdateCustomCode(code);

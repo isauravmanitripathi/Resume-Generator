@@ -17,6 +17,7 @@ export interface Profile {
     summary: string;
     title: string;
   };
+  customTemplate?: string;
   socials: {
     linkedin: string;
     github: string;
@@ -118,17 +119,27 @@ export interface AppSettings {
   activeProvider: 'openai' | 'gemini' | 'anthropic' | 'grok';
 }
 
+export interface CustomTemplate {
+  id: string;
+  name: string;
+  code: string;
+  created: number;
+  updated: number;
+}
+
 export class ResumeDatabase extends Dexie {
   profile!: Table<Profile>;
   resumes!: Table<ResumeVersion>;
   settings!: Table<AppSettings>;
+  customTemplates!: Table<CustomTemplate>;
 
   constructor() {
     super('INeedAResumeDB');
     this.version(1).stores({
       profile: 'id', // Singleton, usually just one row with id='master'
       resumes: 'id, created, name',
-      settings: 'id'
+      settings: 'id',
+      customTemplates: 'id, name, updated'
     });
   }
 }
