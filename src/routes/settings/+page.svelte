@@ -4,6 +4,7 @@
   import { promptDb, initializePrompts, type PromptTemplate } from '$lib/promptDb';
   import { Shield, Save, RefreshCw, Key, Info, Settings, Sparkles, Database, FileText, Layout, ArrowLeft } from 'lucide-svelte';
   import PromptSettings from '$lib/components/settings/PromptSettings.svelte';
+  import { validateOpenAIAndActivate, getCookie } from '../guides/openai/openai';
 
   let settings = $state<AppSettings>({
     id: 'app',
@@ -52,12 +53,26 @@
     if (saved) {
       settings = saved;
     }
+    
+    // Load OpenAI key from cookie if available
+    const cookieKey = getCookie('openai_api_key');
+    if (cookieKey && !settings.providers.openai.key) {
+      settings.providers.openai.key = cookieKey;
+    }
   });
 
   async function saveSettings() {
     saving = true;
     try {
       await db.settings.put($state.snapshot(settings));
+      
+      // If active provider is OpenAI, trigger the activation flow
+      if (settings.activeProvider === 'openai' && settings.providers.openai.key) {
+        await validateOpenAIAndActivate(
+          settings.providers.openai.key, 
+          settings.providers.openai.model
+        );
+      }
     } finally {
       setTimeout(() => { saving = false; }, 500);
     }
@@ -120,6 +135,7 @@
           <input
             id="openai-key"
             type="password"
+            oninput={() => settings.activeProvider = 'openai'}
             bind:value={settings.providers.openai.key}
             placeholder="sk-..."
             class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"

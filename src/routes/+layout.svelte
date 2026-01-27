@@ -3,6 +3,7 @@
 	import '../app.css';
 	import Navbar from '$lib/components/Navbar.svelte';
 	import ClearCache from '$lib/components/ClearCache.svelte';
+	import ToastContainer from '$lib/components/ui/ToastContainer.svelte';
 
 	let { children } = $props();
 </script>
@@ -21,4 +22,5 @@
 	</main>
 
 	<ClearCache />
+	<ToastContainer />
 </div>
