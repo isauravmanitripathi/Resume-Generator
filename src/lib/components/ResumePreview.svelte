@@ -204,7 +204,7 @@
                     <p class="text-xs font-bold text-blue-600">{exp.company}</p>
                     <p class="text-[10px] text-slate-400 font-medium mt-0.5">{exp.startDate} — {exp.current ? 'Present' : exp.endDate}</p>
                   </div>
-                  <p class="text-[11px] leading-relaxed text-slate-600 mt-2 italic">{exp.raw_context?.slice(0, 200)}...</p>
+                  <p class="text-[11px] leading-relaxed text-slate-600 mt-2 whitespace-pre-line">{exp.raw_context}</p>
                 </div>
               {/each}
             </div>
@@ -275,7 +275,7 @@
                   <span class="text-[10px] font-bold text-slate-400 uppercase">{exp.startDate} — {exp.current ? 'Present' : exp.endDate}</span>
                 </div>
                 <p class="text-sm font-bold text-blue-600 mb-2">{exp.company}</p>
-                <p class="text-sm leading-relaxed text-slate-600">{exp.raw_context?.slice(0, 250)}...</p>
+                <p class="text-sm leading-relaxed text-slate-600 whitespace-pre-line">{exp.raw_context}</p>
               </div>
             {/each}
           </div>
@@ -309,7 +309,7 @@
               <div class="col-span-3">
                 <h4 class="text-sm font-bold text-slate-800">{exp.role}</h4>
                 <p class="text-xs text-slate-500 mb-2">{exp.company}</p>
-                <p class="text-xs leading-relaxed text-slate-400">{exp.raw_context?.slice(0, 180)}...</p>
+                <p class="text-xs leading-relaxed text-slate-400 whitespace-pre-line">{exp.raw_context}</p>
               </div>
             </div>
           {/each}

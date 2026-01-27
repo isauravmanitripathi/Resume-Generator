@@ -28,8 +28,8 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
         id: 'resume-tailor',
         name: 'Experience Tailoring',
         description: 'Rewrites professional experience bullets based on a job description.',
-        systemPrompt: 'You are an expert resume writer. Rewrite the following professional experience bullets to align with the provided job description while maintaining factual accuracy. Use strong action verbs and quantify achievements.',
-        userPromptTemplate: 'Experience Item:\n{{experience}}\n\nJob Description:\n{{jobDescription}}\n\nRewrite strictly as a list of bullet points.',
+        systemPrompt: 'You are an expert resume writer. Rewrite the professional experience bullets to align with the job description.\nIMPORTANT: Return strictly as a JSON object: {"tailored_content": "• Bullet 1\\n• Bullet 2..."}. Use exactly {{numPoints}} bullet points.',
+        userPromptTemplate: 'Experience Item:\n{{experience}}\n\nJob Description:\n{{jobDescription}}\n\nRewrite as {{numPoints}} bullet points. Return ONLY the JSON object.',
         isCustom: false
     },
     'summary-gen': {

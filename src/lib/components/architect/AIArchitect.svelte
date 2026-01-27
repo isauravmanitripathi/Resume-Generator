@@ -16,6 +16,7 @@
 
   let selectedType = $state<'summary' | 'experience' | 'education' | 'skills'>('summary');
   let selectedId = $state<string | null>(null);
+  let numPoints = $state(4); // Default bullet points
 
   // Derive the options based on profile
   let options = $derived(() => {
@@ -77,11 +78,14 @@
       if (!template) throw new Error("Tailoring prompt not found.");
 
       // 4. Wrap with JSON instruction
-      const systemPrompt = template.systemPrompt + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
-      const userPrompt = template.userPromptTemplate
+      const systemPrompt = template.systemPrompt
+         .replace('{{numPoints}}', numPoints.toString()) + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
+       
+       const userPrompt = template.userPromptTemplate
         .replace('{{experience}}', contextContent)
         .replace('{{profileSummary}}', contextContent)
-        .replace('{{jobDescription}}', jobDescription);
+        .replace('{{jobDescription}}', jobDescription)
+        .replace('{{numPoints}}', numPoints.toString());
 
       // 5. Call AI
       const rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
@@ -172,6 +176,30 @@
           <ChevronDown size={14} />
         </div>
       </div>
+
+      
+      <!-- Experience Specific Configuration -->
+      {#if selectedType === 'experience'}
+       <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
+         <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Output Configuration</span>
+            <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{numPoints} Bullets</span>
+         </div>
+         <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-slate-400">Short</span>
+            <input 
+              type="range" 
+              min="3" 
+              max="8" 
+              step="1" 
+              bind:value={numPoints}
+              class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+            />
+            <span class="text-[10px] font-bold text-slate-400">Detailed</span>
+         </div>
+       </div>
+      {/if}
+
     {:else}
       <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
         <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
