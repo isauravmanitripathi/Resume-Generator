@@ -1,5 +1,6 @@
 import { promptDb } from '$lib/promptDb';
 import { toasts } from '$lib/toastStore';
+import { logActivity } from '$lib/activityDb';
 
 /**
  * Gets a cookie value by name
@@ -51,34 +52,54 @@ export async function validateOpenAIAndActivate(key: string, model: string) {
         // 3. Prepare OpenAI Request
         toasts.update(toastId, { message: `Connecting to OpenAI (${model})...` });
 
+        const requestPayload = {
+            model: model,
+            messages: [
+                { role: 'system', content: prompt.systemPrompt },
+                { role: 'user', content: prompt.userPromptTemplate }
+            ]
+        };
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${key}`
             },
-            body: JSON.stringify({
-                model: model,
-                messages: [
-                    { role: 'system', content: prompt.systemPrompt },
-                    { role: 'user', content: prompt.userPromptTemplate }
-                ]
-            })
+            body: JSON.stringify(requestPayload)
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || "Failed to connect to OpenAI");
+            const errorMsg = data.error?.message || "Failed to connect to OpenAI";
+            await logActivity({
+                timestamp: Date.now(),
+                provider: 'openai',
+                model: model,
+                request: requestPayload,
+                response: data,
+                status: 'error'
+            });
+            throw new Error(errorMsg);
         }
 
         // 4. Validate Response
         toasts.update(toastId, { message: "Verifying hand-shake response..." });
-        const data = await response.json();
         const content = data.choices[0].message.content;
 
         try {
             const parsed = JSON.parse(content);
             if (parsed.greetings === 'hi') {
+                await logActivity({
+                    timestamp: Date.now(),
+                    provider: 'openai',
+                    model: model,
+                    request: requestPayload,
+                    response: data,
+                    status: 'success'
+                });
+
                 toasts.update(toastId, {
                     message: "Connection Activated! Key is valid and handshake successful.",
                     type: 'success'
@@ -88,6 +109,14 @@ export async function validateOpenAIAndActivate(key: string, model: string) {
                 throw new Error("Handshake failed: Unexpected response format.");
             }
         } catch (e) {
+            await logActivity({
+                timestamp: Date.now(),
+                provider: 'openai',
+                model: model,
+                request: requestPayload,
+                response: data,
+                status: 'error'
+            });
             console.error("Parse Error", content, e);
             throw new Error("Handshake failed: Response was not valid JSON.");
         }

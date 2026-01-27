@@ -45,9 +45,9 @@
   }
 </script>
 
-<div class="grid grid-cols-12 gap-8 h-[600px]">
+<div class="w-full flex flex-col lg:flex-row gap-8 min-h-[600px] h-[70vh]">
   <!-- Prompt List -->
-  <aside class="col-span-4 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col">
+  <aside class="w-full lg:w-[320px] shrink-0 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-full">
     <div class="p-4 border-b border-slate-100 bg-slate-50/50">
        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Library</span>
     </div>
@@ -58,18 +58,18 @@
           class="w-full p-4 border-b border-slate-50 text-left transition-all hover:bg-slate-50 group flex items-center justify-between
           {selectedId === p.id ? 'bg-blue-50/50 border-blue-100' : ''}"
         >
-          <div>
-            <p class="text-xs font-bold {selectedId === p.id ? 'text-blue-600' : 'text-slate-700'}">{p.name}</p>
+          <div class="min-w-0">
+            <p class="text-xs font-bold truncate {selectedId === p.id ? 'text-blue-600' : 'text-slate-700'}">{p.name}</p>
             <p class="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{p.description}</p>
           </div>
-          <ChevronRight size={14} class="text-slate-300 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight size={14} class="text-slate-300 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
         </button>
       {/each}
     </div>
   </aside>
 
   <!-- Editor -->
-  <main class="col-span-8 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden">
+  <main class="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full">
     {#if selectedPrompt}
       <div class="flex-1 flex flex-col overflow-hidden" in:fade={{ duration: 200 }}>
         <!-- Editor Header -->

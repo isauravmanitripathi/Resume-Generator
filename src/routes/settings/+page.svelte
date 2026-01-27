@@ -18,7 +18,9 @@
   });
 
   let saving = $state(false);
-  let activeTab = $state<'providers' | 'prompts'>('providers');
+  let activeTab = $state<'providers' | 'prompts' | 'activity'>('providers');
+
+  import ActivityLog from '$lib/components/settings/ActivityLog.svelte';
 
   const openaiModels = [
     { id: 'gpt-5.2', name: 'GPT-5.2', desc: 'The best model for coding and agentic tasks across industries' },
@@ -106,6 +108,13 @@
         {activeTab === 'prompts' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
       >
         Prompts
+      </button>
+      <button 
+        onclick={() => activeTab = 'activity'}
+        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        {activeTab === 'activity' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
+      >
+        Activity
       </button>
     </div>
   </header>
@@ -291,9 +300,13 @@
     </div>
 
     </div>
-  {:else}
-    <div class="animate-fade-in">
+  {:else if activeTab === 'prompts'}
+    <div class="animate-fade-in w-full">
       <PromptSettings />
+    </div>
+  {:else}
+    <div class="animate-fade-in w-full">
+      <ActivityLog />
     </div>
   {/if}
 
