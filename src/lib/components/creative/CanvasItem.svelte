@@ -8,12 +8,14 @@
     w: number;
     h: number;
     text: string;
+    type?: 'text' | 'box' | 'line' | 'circle';
+    style?: any;
     isSelected: boolean;
-    onUpdate: (id: string, updates: { x: number; y: number; w: number; h: number }) => void;
+    onUpdate: (id: string, updates: Partial<Props>) => void;
     onSelect: (id: string) => void;
   }
 
-  let { id, x, y, w, h, text, isSelected, onUpdate, onSelect } = $props<Props>();
+  let { id, x, y, w, h, text, type = 'text', style = {}, isSelected, onUpdate, onSelect } = $props<Props>();
 
   let isDragging = false;
   let isResizing = false;
@@ -55,7 +57,7 @@
     const snappedY = Math.round(rawY / GRID) * GRID;
     
     if (snappedX !== x || snappedY !== y) {
-      onUpdate(id, { x: snappedX, y: snappedY, w, h });
+      onUpdate(id, { x: snappedX, y: snappedY });
     }
   }
 
@@ -88,11 +90,11 @@
     const rawH = initialH + dy;
     
     // Snap width/height
-    const snappedW = Math.max(GRID * 2, Math.round(rawW / GRID) * GRID);
-    const snappedH = Math.max(GRID, Math.round(rawH / GRID) * GRID);
+    const snappedW = Math.max(GRID, Math.round(rawW / GRID) * GRID);
+    const snappedH = Math.max(GRID, Math.round(rawH / GRID) * GRID); // Min 20px
     
     if (snappedW !== w || snappedH !== h) {
-      onUpdate(id, { x, y, w: snappedW, h: snappedH });
+      onUpdate(id, { w: snappedW, h: snappedH });
     }
   }
 
@@ -102,29 +104,48 @@
     window.removeEventListener('mouseup', stopResize);
   }
 
-  // Dynamic Font Scaling
-  // Simple heuristic: fit height primarily, but clamp by width.
-  let fontSize = $derived(Math.max(12, Math.floor(h * 0.6))); 
+  // Styles
+  const computedFontSize = $derived(style.fontSize || Math.max(12, Math.floor(h * 0.6)) + 'px');
+  
+  const cssStyle = $derived(`
+    left: ${x}px; 
+    top: ${y}px; 
+    width: ${w}px; 
+    height: ${h}px;
+    font-size: ${type === 'text' ? computedFontSize : 'inherit'};
+    font-family: ${style.fontFamily || 'inherit'};
+    font-weight: ${style.fontWeight || 'normal'};
+    font-style: ${style.fontStyle || 'normal'};
+    text-align: ${style.textAlign || 'left'};
+    color: ${style.color || 'inherit'};
+    background-color: ${style.backgroundColor || (type === 'box' || type === 'circle' ? '#e2e8f0' : type === 'line' ? '#000' : 'transparent')};
+    border-radius: ${type === 'circle' ? '50%' : '0'};
+    display: flex;
+    align-items: center;
+  `);
+
 </script>
 
 <div 
-  class="canvas-item"
+  class="canvas-item {type}"
   class:selected={isSelected}
-  style="
-    left: {x}px; 
-    top: {y}px; 
-    width: {w}px; 
-    height: {h}px;
-    font-size: {fontSize}px;
-  "
+  style={cssStyle}
   onmousedown={handleMouseDown}
   role="button"
   tabindex="0"
 >
-  <div class="content">{text}</div>
+  {#if type === 'text'}
+    <div class="content">{text}</div>
+  {/if}
   
   {#if isSelected}
-    <div class="resize-handle" onmousedown={handleResizeStart}></div>
+    <div 
+      class="resize-handle" 
+      onmousedown={handleResizeStart}
+      role="button"
+      tabindex="-1"
+      aria-label="Resize handle"
+    ></div>
   {/if}
 </div>
 

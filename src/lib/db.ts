@@ -127,11 +127,19 @@ export interface CustomTemplate {
   updated: number;
 }
 
+export interface CreativeDesign {
+  id: string; // e.g. 'draft-1'
+  name: string;
+  items: CanvasItem[]; // The JSON map of coordinates and styles
+  updated: number;
+}
+
 export class ResumeDatabase extends Dexie {
   profile!: Table<Profile>;
   resumes!: Table<ResumeVersion>;
   settings!: Table<AppSettings>;
   customTemplates!: Table<CustomTemplate>;
+  creativeDesigns!: Table<CreativeDesign>;
 
   constructor() {
     super('INeedAResumeDB');
@@ -139,7 +147,8 @@ export class ResumeDatabase extends Dexie {
       profile: 'id', // Singleton, usually just one row with id='master'
       resumes: 'id, created, name',
       settings: 'id',
-      customTemplates: 'id, name, updated'
+      customTemplates: 'id, name, updated',
+      creativeDesigns: 'id, updated'
     });
   }
 }

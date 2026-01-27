@@ -39,7 +39,7 @@
     class="w-12 h-12 bg-white border border-slate-200 shadow-lg shadow-slate-200/50 rounded-full flex items-center justify-center text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all group"
     title="Clear App Cache & Cookies"
   >
-    <Trash2 size={20} class="{isCleaning ? 'animate-bounce' : ''}" />
+    <Trash2 size={20} class={isCleaning ? 'animate-bounce' : ''} />
     <span class="absolute right-full mr-3 px-2 py-1 bg-slate-800 text-white text-[10px] font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
       Clear Cache
     </span>
