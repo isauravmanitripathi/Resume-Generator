@@ -2,6 +2,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import '../app.css';
 	import Navbar from '$lib/components/Navbar.svelte';
+	import ClearCache from '$lib/components/ClearCache.svelte';
 
 	let { children } = $props();
 </script>
@@ -15,7 +16,9 @@
 	<Navbar />
 
 	<!-- Main Content Area -->
-	<main class="flex-1 overflow-y-auto transition-all duration-300">
+	<main class="flex-1 overflow-y-auto transition-all duration-300 relative">
 		{@render children()}
 	</main>
+
+	<ClearCache />
 </div>
