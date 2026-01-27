@@ -131,6 +131,7 @@
       <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
         {#if activeSubTab === 'ai'}
           <AIArchitect 
+            {profile}
             bind:jobDescription 
             isGenerating={isGenerating} 
             onGenerate={handleGenerate} 
