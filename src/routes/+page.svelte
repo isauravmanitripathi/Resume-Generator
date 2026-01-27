@@ -43,12 +43,26 @@
     }
   }
 
-  function handleGenerate() {
-    isGenerating = true;
-    setTimeout(() => {
-      isGenerating = false;
-      alert('AI Generation Mock: Resume tailored!');
-    }, 2000);
+  function handleGenerate(tailored: { type: string, id: string | null, content: string }) {
+    if (!profile) return;
+    
+    // Create a local snapshot to update the preview
+    const preview = { ...$state.snapshot(profile) };
+    
+    if (tailored.type === 'summary') {
+      preview.basics.summary = tailored.content;
+    } else if (tailored.type === 'experience') {
+      const item = preview.experience.find(e => e.id === tailored.id);
+      if (item) item.raw_context = tailored.content;
+    } else if (tailored.type === 'education') {
+      const item = preview.education.find(e => e.id === tailored.id);
+      if (item) item.studyType = tailored.content; // Fallback for education
+    } else if (tailored.type === 'skills') {
+      const item = preview.skills.find(s => s.id === tailored.id);
+      if (item) item.name = tailored.content;
+    }
+
+    profile = preview;
   }
 
   async function handleSaveCustomCode(code: string) {

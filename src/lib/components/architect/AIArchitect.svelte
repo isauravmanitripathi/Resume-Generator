@@ -1,15 +1,18 @@
 <script lang="ts">
-  import { Sparkles, User, Briefcase, GraduationCap, Hammer, ChevronDown } from 'lucide-svelte';
+  import { Sparkles, User, Briefcase, GraduationCap, Hammer, ChevronDown, Loader2 } from 'lucide-svelte';
   import type { Profile } from '$lib/db';
+  import { db } from '$lib/db';
+  import { promptDb } from '$lib/promptDb';
+  import { generateTailoredContent } from '../../../routes/guides/openai/openai';
 
   interface Props {
     profile: Profile | null;
     jobDescription: string;
     isGenerating: boolean;
-    onGenerate: () => void;
+    onGenerate: (result: { type: string, id: string | null, content: string }) => void;
   }
 
-  let { profile, jobDescription = $bindable(), isGenerating, onGenerate } = $props<Props>();
+  let { profile, jobDescription = $bindable(), isGenerating = $bindable(), onGenerate } = $props<Props>();
 
   let selectedType = $state<'summary' | 'experience' | 'education' | 'skills'>('summary');
   let selectedId = $state<string | null>(null);
@@ -40,6 +43,88 @@
       selectedId = null;
     }
   });
+
+  async function executeTailoring() {
+    if (!profile) return;
+    
+    const resumeName = prompt("Enter a name for this resume version:", "Tailored Resume " + new Date().toLocaleDateString());
+    if (!resumeName) return;
+
+    isGenerating = true;
+
+    try {
+      // 1. Get Settings for model
+      const settings = await db.settings.get('app');
+      const model = settings?.providers.openai.model || 'gpt-4.1';
+
+      // 2. Identify Context Content
+      let contextContent = "";
+      let promptId = "resume-tailor";
+
+      if (selectedType === 'summary') {
+        contextContent = profile.basics.summary;
+        promptId = "summary-gen";
+      } else if (selectedType === 'experience') {
+        const item = profile.experience.find(e => e.id === selectedId);
+        contextContent = item ? `${item.role} at ${item.company}: ${item.raw_context || ''}` : "";
+      } else if (selectedType === 'education') {
+        const item = profile.education.find(e => e.id === selectedId);
+        contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}` : "";
+      } else if (selectedType === 'skills') {
+        const item = profile.skills.find(s => s.id === selectedId);
+        contextContent = item ? `${item.name} (${item.category})` : "";
+      }
+
+      // 3. Get the Prompt
+      const template = await promptDb.prompts.get(promptId);
+      if (!template) throw new Error("Tailoring prompt not found.");
+
+      // 4. Wrap with JSON instruction
+      const systemPrompt = template.systemPrompt + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
+      const userPrompt = template.userPromptTemplate
+        .replace('{{experience}}', contextContent)
+        .replace('{{profileSummary}}', contextContent)
+        .replace('{{jobDescription}}', jobDescription);
+
+      // 5. Call AI
+      const rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
+      
+      let tailoredContent = "";
+      try {
+        const parsed = JSON.parse(rawResponse);
+        tailoredContent = parsed.tailored_content || rawResponse;
+      } catch (e) {
+        tailoredContent = rawResponse; // Fallback
+      }
+
+      // 6. Save as new Resume Version
+      const newVersion = {
+        id: crypto.randomUUID(),
+        name: resumeName,
+        created: Date.now(),
+        canvas: [], // This will be populated by the studio eventually
+        meta: { 
+          tailoredContext: selectedType, 
+          tailoredId: selectedId,
+          content: tailoredContent 
+        }
+      };
+
+      await db.resumes.add(newVersion);
+      
+      // Notify parent to refresh/preview
+      onGenerate({ 
+        type: selectedType, 
+        id: selectedId, 
+        content: tailoredContent 
+      }); 
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      isGenerating = false;
+    }
+  }
 </script>
 
 <div class="space-y-6">
@@ -112,16 +197,21 @@
       id="jd"
       bind:value={jobDescription}
       placeholder="Paste the target job description here..."
-      class="w-full h-[300px] p-5 bg-slate-50 border border-slate-100 rounded-3xl text-sm leading-relaxed text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-none shadow-inner"
+      class="w-full h-[300px] p-5 bg-slate-50 border border-slate-200 rounded-3xl text-sm leading-relaxed text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-none shadow-inner"
     ></textarea>
   </div>
   
   <button 
-    onclick={onGenerate}
+    onclick={executeTailoring}
     class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 group disabled:opacity-50"
     disabled={!jobDescription || isGenerating}
   >
-    <Sparkles size={16} class="group-hover:animate-pulse" />
-    {isGenerating ? 'Architecting...' : 'Build Tailored Resume'}
+    {#if isGenerating}
+      <Loader2 size={16} class="animate-spin" />
+      Architecting...
+    {:else}
+      <Sparkles size={16} class="group-hover:animate-pulse" />
+      Build Tailored Resume
+    {/if}
   </button>
 </div>

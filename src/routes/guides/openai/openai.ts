@@ -129,3 +129,76 @@ export async function validateOpenAIAndActivate(key: string, model: string) {
         return false;
     }
 }
+
+/**
+ * Generates tailored content based on prompts and context
+ */
+export async function generateTailoredContent(
+    systemPrompt: string,
+    userPrompt: string,
+    model: string
+) {
+    const key = getCookie('openai_api_key');
+    if (!key) {
+        throw new Error("OpenAI API Key not found. Please activate your connection in Settings.");
+    }
+
+    const toastId = toasts.add("AI Architect is starting...", "loading");
+
+    try {
+        toasts.update(toastId, { message: "Context prepared, contacting AI..." });
+
+        const requestPayload = {
+            model: model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ]
+        };
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify(requestPayload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorMsg = data.error?.message || "Failed to reach OpenAI";
+            await logActivity({
+                timestamp: Date.now(),
+                provider: 'openai',
+                model: model,
+                request: requestPayload,
+                response: data,
+                status: 'error'
+            });
+            throw new Error(errorMsg);
+        }
+
+        const content = data.choices[0].message.content;
+
+        await logActivity({
+            timestamp: Date.now(),
+            provider: 'openai',
+            model: model,
+            request: requestPayload,
+            response: data,
+            status: 'success'
+        });
+
+        toasts.update(toastId, { message: "Response received! Processing...", type: 'success' });
+        return content;
+    } catch (error: any) {
+        toasts.update(toastId, {
+            message: `Architect Error: ${error.message}`,
+            type: 'error'
+        });
+        throw error;
+    }
+}
+
