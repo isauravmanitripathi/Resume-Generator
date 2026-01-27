@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Profile } from '$lib/db';
+  import { renderTemplate } from '$lib/templateEngine';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
     Smartphone, Mail, Linkedin, Github, Globe
@@ -8,14 +9,28 @@
   interface Props {
     profile: Profile;
     templateId: string;
+    customCode?: string;
   }
 
-  let { profile, templateId } = $props<Props>();
+  let { profile, templateId, customCode } = $props<Props>();
+
+  let renderedCustomCode = $derived(
+    templateId === 'custom' && customCode 
+      ? renderTemplate(customCode, { profile }) 
+      : ''
+  );
 </script>
 
-<div class="bg-white shadow-2xl mx-auto w-full max-w-[210mm] min-h-[297mm] text-slate-800 font-sans overflow-hidden">
+<div class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-hidden relative print:shadow-none" 
+     style="width: 210mm; height: 297mm; min-width: 210mm; min-height: 297mm;">
   
-  {#if templateId === 'classic'}
+  {#if templateId === 'custom' && customCode}
+    <!-- Custom Template (Raw HTML) -->
+    <div class="w-full h-full overflow-hidden">
+      {@html renderedCustomCode}
+    </div>
+
+  {:else if templateId === 'classic'}
     <!-- Classic Template -->
     <div class="p-10">
       <header class="text-center mb-10">

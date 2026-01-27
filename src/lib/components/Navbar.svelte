@@ -1,12 +1,13 @@
 <script lang="ts">
   import { page } from '$app/stores';
-  import { LayoutTemplate, Database, History, Settings } from 'lucide-svelte';
+  import { LayoutTemplate, Database, History, Settings, BookOpen } from 'lucide-svelte';
 
   const links = [
     { href: '/', label: 'Architect', icon: LayoutTemplate },
     { href: '/vault', label: 'Vault', icon: Database },
     { href: '/history', label: 'History', icon: History },
-    { href: '/settings', label: 'Settings', icon: Settings }
+    { href: '/settings', label: 'Settings', icon: Settings },
+    { href: '/documentation', label: 'Docs', icon: BookOpen } // Added Docs Link
   ];
 </script>
 

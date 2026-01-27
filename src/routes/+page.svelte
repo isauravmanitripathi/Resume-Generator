@@ -14,6 +14,7 @@
   let isGenerating = $state(false);
   let selectedTemplate = $state('classic');
   let activeSubTab = $state('ai');
+  let customCode = $state('');
 
   const navTabs = [
     { id: 'ai', name: 'AI Mode', icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -79,6 +80,7 @@
     <!-- Sub-Navigation Sidebar (Vertical) -->
     <nav class="w-20 bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-6 shrink-0 relative z-10">
       {#each navTabs as tab}
+        {@const Icon = tab.icon}
         <button
           onclick={() => activeSubTab = tab.id}
           class="group relative flex flex-col items-center gap-1 transition-all"
@@ -89,7 +91,7 @@
               ? `${tab.bg} ${tab.color} shadow-inner scale-105` 
               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'}"
           >
-            <svelte:component this={tab.icon} size={22} strokeWidth={activeSubTab === tab.id ? 2.5 : 2} />
+            <Icon size={22} strokeWidth={activeSubTab === tab.id ? 2.5 : 2} />
           </div>
           <span class="text-[9px] font-bold uppercase tracking-tighter transition-colors
             {activeSubTab === tab.id ? tab.color : 'text-slate-400 group-hover:text-slate-600'}">
@@ -131,6 +133,7 @@
           <ThemeSelector 
             selectedTemplate={selectedTemplate} 
             onSelect={(id) => selectedTemplate = id} 
+            onUpdateCustomCode={(code) => customCode = code}
           />
 
         {:else if activeSubTab === 'creative'}
@@ -162,7 +165,7 @@
       <div class="min-h-full flex items-start justify-center">
         {#if profile}
           <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
-            <ResumePreview {profile} templateId={selectedTemplate} />
+            <ResumePreview {profile} templateId={selectedTemplate} {customCode} />
           </div>
         {:else}
           <!-- Empty State -->

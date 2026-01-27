@@ -1,20 +1,35 @@
 <script lang="ts">
-  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles } from 'lucide-svelte';
+  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles, Code, Database, Hammer } from 'lucide-svelte';
+  import CustomThemeEditor from '$lib/components/architect/studio/CustomThemeEditor.svelte';
 
   interface Props {
     selectedTemplate: string;
     onSelect: (id: string) => void;
+    onUpdateCustomCode?: (code: string) => void;
   }
 
-  let { selectedTemplate, onSelect } = $props<Props>();
+  let { selectedTemplate, onSelect, onUpdateCustomCode } = $props<Props>();
+
+  let showEditor = $state(false);
 
   const templates = [
     { id: 'classic', name: 'Classic', icon: FileText, desc: 'Professional 2-column' },
     { id: 'modern', name: 'Modern', icon: Layout, desc: 'High-impact design' },
     { id: 'minimal', name: 'Minimal', icon: MousePointer2, desc: 'Clean & simple' },
     { id: 'blank', name: 'Blank', icon: Eraser, desc: 'Empty canvas' },
+    { id: 'custom', name: 'Custom', icon: Code, desc: 'Dev Mode' },
   ];
 </script>
+
+{#if showEditor}
+  <CustomThemeEditor 
+    onClose={() => showEditor = false} 
+    onSave={(code) => {
+      if(onUpdateCustomCode) onUpdateCustomCode(code);
+      onSelect('custom');
+    }}
+  />
+{/if}
 
 <div class="space-y-8 animate-fade-in relative">
   <div class="space-y-4">
@@ -82,6 +97,34 @@
           {/if}
         </button>
       {/each}
+    </div>
+  </div>
+
+  <div class="space-y-4 pt-4 border-t border-slate-100">
+    <div class="flex items-center gap-2 text-slate-400">
+      <Hammer size={14} />
+      <span class="text-[10px] font-black uppercase tracking-widest">Studio Developer Tools</span>
+    </div>
+    <div class="grid grid-cols-2 gap-3">
+      <a 
+        href="/documentation"
+        class="flex flex-col items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:border-slate-300 transition-all group"
+      >
+        <div class="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform text-indigo-500">
+          <Database size={18} />
+        </div>
+        <span class="text-[10px] font-bold text-slate-600">Data Schema</span>
+      </a>
+
+      <button 
+        onclick={() => showEditor = true}
+        class="flex flex-col items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:border-slate-300 transition-all group"
+      >
+        <div class="p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform text-pink-500">
+          <Code size={18} />
+        </div>
+        <span class="text-[10px] font-bold text-slate-600">Code Editor</span>
+      </button>
     </div>
   </div>
 
