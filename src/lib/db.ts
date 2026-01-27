@@ -93,8 +93,16 @@ export interface ResumeVersion {
   id: string;
   created: number;
   name: string;
-  canvas: CanvasItem[];
-  meta: any;
+  templateId: string;
+  customCode?: string;
+  tailoredContent: {
+    summary?: string;
+    experience: Record<string, string>; // ExperienceId -> TailoredContent
+    education: Record<string, string>; // EducationId -> TailoredContent
+    skills: Record<string, string>; // SkillId -> TailoredContent
+  };
+  canvas?: CanvasItem[];
+  meta?: any;
 }
 
 export interface CanvasItem {
@@ -117,6 +125,7 @@ export interface AppSettings {
     grok: { key: string; model: string };
   };
   activeProvider: 'openai' | 'gemini' | 'anthropic' | 'grok';
+  lastActiveResumeId?: string;
 }
 
 export interface CustomTemplate {

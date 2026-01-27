@@ -47,9 +47,6 @@
   async function executeTailoring() {
     if (!profile) return;
     
-    const resumeName = prompt("Enter a name for this resume version:", "Tailored Resume " + new Date().toLocaleDateString());
-    if (!resumeName) return;
-
     isGenerating = true;
 
     try {
@@ -97,21 +94,6 @@
         tailoredContent = rawResponse; // Fallback
       }
 
-      // 6. Save as new Resume Version
-      const newVersion = {
-        id: crypto.randomUUID(),
-        name: resumeName,
-        created: Date.now(),
-        canvas: [], // This will be populated by the studio eventually
-        meta: { 
-          tailoredContext: selectedType, 
-          tailoredId: selectedId,
-          content: tailoredContent 
-        }
-      };
-
-      await db.resumes.add(newVersion);
-      
       // Notify parent to refresh/preview
       onGenerate({ 
         type: selectedType, 

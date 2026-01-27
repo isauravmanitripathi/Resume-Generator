@@ -1,18 +1,30 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
-  import { db, type Profile } from '$lib/db';
+  import { db, type Profile, type ResumeVersion } from '$lib/db';
   import { 
-    Sparkles, Database, Palette, Lightbulb, RefreshCw, Eye, FileText
+    Sparkles, Database, Palette, Lightbulb, RefreshCw, Eye, FileText, ChevronDown, Plus, Save, Trash2
   } from 'lucide-svelte';
   import ResumePreview from '$lib/components/ResumePreview.svelte';
   import VaultExplorer from '$lib/components/architect/VaultExplorer.svelte';
   import ThemeSelector from '$lib/components/architect/ThemeSelector.svelte';
   import AIArchitect from '$lib/components/architect/AIArchitect.svelte';
+  import { toasts } from '$lib/toastStore';
 
   let profile = $state<Profile | null>(null);
+  let resumes = $state<ResumeVersion[]>([]);
+  let activeResumeId = $state<string | null>(null);
+  let activeResume = $derived(resumes.find(r => r.id === activeResumeId) || null);
+
   let jobDescription = $state('');
   let isGenerating = $state(false);
   let selectedTemplate = $state('classic');
+  
+  $effect(() => {
+    if (activeResumeId && selectedTemplate) {
+      db.resumes.update(activeResumeId, { templateId: selectedTemplate });
+    }
+  });
+
   let activeSubTab = $state('ai');
   let customCode = $state('');
 
@@ -23,15 +35,87 @@
     { id: 'creative', name: 'Creative', icon: Lightbulb, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
-  /* 
-    Phase 4: Creative Lab Placeholder 
-  */
+  // Sync template/code when active resume changes
+  $effect(() => {
+    if (activeResume) {
+      if (activeResume.templateId) selectedTemplate = activeResume.templateId;
+      if (activeResume.customCode) customCode = activeResume.customCode;
+    }
+  });
+
+  // Derived profile with tailored content applied
+  let appliedProfile = $derived.by(() => {
+    if (!profile) return null;
+    if (!activeResume) return profile;
+
+    const merged = { ...$state.snapshot(profile) };
+    const tailored = activeResume.tailoredContent;
+
+    if (tailored.summary) merged.basics.summary = tailored.summary;
+    
+    // Apply tailored Experience
+    merged.experience = merged.experience.map(exp => ({
+      ...exp,
+      raw_context: tailored.experience[exp.id] || exp.raw_context
+    }));
+
+    // Apply tailored Education
+    merged.education = merged.education.map(edu => ({
+      ...edu,
+      studyType: tailored.education[edu.id] || edu.studyType
+    }));
+
+    // Apply tailored Skills
+    merged.skills = merged.skills.map(skill => ({
+      ...skill,
+      name: tailored.skills[skill.id] || skill.name
+    }));
+
+    return merged;
+  });
 
   onMount(async () => {
-    const saved = await db.profile.get('master');
-    if (saved) {
-      profile = saved;
-      if (saved.customTemplate) customCode = saved.customTemplate;
+    try {
+      await refreshData();
+      
+      // Load last used resume from DB settings
+      const settings = await db.settings.get('app');
+      const lastId = settings?.lastActiveResumeId;
+
+      const allResumes = await db.resumes.orderBy('created').reverse().toArray();
+      resumes = allResumes;
+
+      if (lastId && resumes.some(r => r.id === lastId)) {
+        activeResumeId = lastId;
+        toasts.add(`Restored session: "${resumes.find(r => r.id === lastId)?.name}"`, "success");
+      } else if (resumes.length > 0) {
+        activeResumeId = resumes[0].id;
+      }
+    } catch (err: any) {
+      toasts.add(`Failed to load session: ${err.message}`, "error");
+    }
+  });
+
+  $effect(() => {
+    if (activeResumeId) {
+      db.settings.get('app').then(settings => {
+        if (settings) {
+          db.settings.update('app', { lastActiveResumeId: activeResumeId });
+        } else {
+          // Initialize if missing
+          db.settings.put({
+            id: 'app',
+            lastActiveResumeId: activeResumeId,
+            activeProvider: 'openai',
+            providers: {
+              openai: { key: '', model: 'gpt-4o' },
+              gemini: { key: '', model: '' },
+              anthropic: { key: '', model: '' },
+              grok: { key: '', model: '' }
+            }
+          });
+        }
+      });
     }
   });
 
@@ -41,34 +125,130 @@
       profile = saved;
       if (saved.customTemplate) customCode = saved.customTemplate;
     }
+    const allResumes = await db.resumes.orderBy('created').reverse().toArray();
+    resumes = allResumes;
   }
 
-  function handleGenerate(tailored: { type: string, id: string | null, content: string }) {
-    if (!profile) return;
-    
-    // Create a local snapshot to update the preview
-    const preview = { ...$state.snapshot(profile) };
-    
-    if (tailored.type === 'summary') {
-      preview.basics.summary = tailored.content;
-    } else if (tailored.type === 'experience') {
-      const item = preview.experience.find(e => e.id === tailored.id);
-      if (item) item.raw_context = tailored.content;
-    } else if (tailored.type === 'education') {
-      const item = preview.education.find(e => e.id === tailored.id);
-      if (item) item.studyType = tailored.content; // Fallback for education
-    } else if (tailored.type === 'skills') {
-      const item = preview.skills.find(s => s.id === tailored.id);
-      if (item) item.name = tailored.content;
+  async function createNewResume() {
+    const name = prompt("Enter a name for your new tailored resume:");
+    if (!name) return;
+
+    try {
+      const newResume: ResumeVersion = {
+        id: crypto.randomUUID(),
+        name,
+        created: Date.now(),
+        templateId: selectedTemplate,
+        customCode: customCode,
+        tailoredContent: {
+          experience: {},
+          education: {},
+          skills: {}
+        }
+      };
+
+      await db.resumes.add(newResume);
+      await refreshData();
+      activeResumeId = newResume.id;
+      toasts.add(`Created "${name}"`, "success");
+    } catch (err: any) {
+      toasts.add(`Failed to create resume: ${err.message}`, "error");
+    }
+  }
+
+  async function handleGenerate(tailored: { type: string, id: string | null, content: string }) {
+    if (!activeResumeId) {
+      const name = prompt("You don't have an active tailored resume. Enter a name to create one:", "My Tailored Resume");
+      if (!name) return;
+      
+      try {
+        const newResume: ResumeVersion = {
+          id: crypto.randomUUID(),
+          name,
+          created: Date.now(),
+          templateId: selectedTemplate,
+          customCode: customCode,
+          tailoredContent: {
+            experience: {},
+            education: {},
+            skills: {}
+          }
+        };
+        await db.resumes.add(newResume);
+        await refreshData(); // Ensure UI knows about it!
+        activeResumeId = newResume.id;
+        toasts.add(`Created "${name}"`, "success");
+      } catch (err: any) {
+        toasts.add(`Failed to create auto-resume: ${err.message}`, "error");
+        return;
+      }
     }
 
-    profile = preview;
+    const resume = await db.resumes.get(activeResumeId);
+    if (!resume) return;
+
+    if (tailored.type === 'summary') {
+      resume.tailoredContent.summary = tailored.content;
+    } else if (tailored.type === 'experience' && tailored.id) {
+      resume.tailoredContent.experience[tailored.id] = tailored.content;
+    } else if (tailored.type === 'education' && tailored.id) {
+      resume.tailoredContent.education[tailored.id] = tailored.content;
+    } else if (tailored.type === 'skills' && tailored.id) {
+      resume.tailoredContent.skills[tailored.id] = tailored.content;
+    }
+
+    await db.resumes.update(activeResumeId, { tailoredContent: resume.tailoredContent });
+    await refreshData();
   }
 
   async function handleSaveCustomCode(code: string) {
     customCode = code;
-    // Persist to DB
+    if (activeResumeId) {
+      await db.resumes.update(activeResumeId, { customCode: code });
+    }
     await db.profile.update('master', { customTemplate: code });
+    await refreshData();
+  }
+
+  async function handleSaveResume() {
+    if (!activeResumeId) return;
+    try {
+      // Just update timestamp for now to "touch" the file
+      await db.resumes.update(activeResumeId, { created: Date.now() });
+      const r = resumes.find(r => r.id === activeResumeId);
+      toasts.add(`Saved resume "${r?.name}"`, "success");
+      await refreshData();
+    } catch (e) {
+      toasts.add("Failed to save", "error");
+    }
+  }
+
+  async function handleDeleteResume() {
+    if (!activeResumeId) return;
+    const r = resumes.find(r => r.id === activeResumeId);
+    if (!confirm(`Are you sure you want to delete "${r?.name}"? This cannot be undone.`)) return;
+
+    try {
+      await db.resumes.delete(activeResumeId);
+      
+      // If we deleted the active one from settings, clear it
+      const settings = await db.settings.get('app');
+      if (settings?.lastActiveResumeId === activeResumeId) {
+        await db.settings.update('app', { lastActiveResumeId: undefined });
+      }
+
+      toasts.add(`Deleted "${r?.name}"`, "success");
+      await refreshData();
+      
+      // Select another resume if available
+      if (resumes.length > 0) {
+        activeResumeId = resumes[0].id;
+      } else {
+        activeResumeId = null;
+      }
+    } catch (e) {
+      toasts.add("Failed to delete", "error");
+    }
   }
 </script>
 
@@ -86,6 +266,55 @@
     </div>
     
     <div class="flex items-center gap-3">
+      <!-- Resume Selector -->
+      <div class="relative">
+        <select 
+          bind:value={activeResumeId}
+          class="pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none hover:bg-slate-100 transition-all cursor-pointer min-w-[200px]"
+        >
+          {#each resumes as res}
+            <option value={res.id}>{res.name}</option>
+          {/each}
+          {#if resumes.length === 0}
+            <option value={null} disabled>No Resumes Found</option>
+          {/if}
+        </select>
+        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+          <ChevronDown size={14} />
+        </div>
+      </div>
+
+      <button 
+        onclick={createNewResume}
+        class="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all shadow-sm flex items-center gap-2 px-3 text-xs font-bold"
+        title="New Tailored Resume"
+      >
+        <Plus size={16} />
+        <span>New</span>
+      </button>
+
+      <div class="h-6 w-px bg-slate-200 mx-1"></div>
+      
+      <button 
+        onclick={handleSaveResume}
+        class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex items-center gap-2 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Save Resume"
+      >
+        <Save size={16} />
+        <span>Save</span>
+      </button>
+
+      <button 
+        onclick={handleDeleteResume}
+        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        title="Delete Resume"
+      >
+        <Trash2 size={16} />
+        <span>Delete</span>
+      </button>
+
+      <div class="h-6 w-px bg-slate-200 mx-1"></div>
+
       <button 
         onclick={refreshData}
         class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -189,9 +418,18 @@
       </div>
 
       <div class="min-h-full flex items-start justify-center">
-        {#if profile}
+        {#if appliedProfile}
           <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
-            <ResumePreview {profile} templateId={selectedTemplate} {customCode} />
+            <ResumePreview 
+              profile={appliedProfile} 
+              templateId={activeResume?.templateId || selectedTemplate} 
+              customCode={activeResume?.customCode || customCode} 
+            />
+          </div>
+        {:else if profile}
+          <!-- In case appliedProfile is null but profile exists -->
+          <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
+             <ResumePreview {profile} templateId={selectedTemplate} {customCode} />
           </div>
         {:else}
           <!-- Empty State -->
