@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Profile } from '$lib/db';
-  import { renderTemplate } from '$lib/templateEngine';
+  import IframeRenderer from './IframeRenderer.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
     Smartphone, Mail, Linkedin, Github, Globe
@@ -13,24 +13,19 @@
   }
 
   let { profile, templateId, customCode } = $props<Props>();
-
-  let renderedCustomCode = $derived(
-    templateId === 'custom' && customCode 
-      ? renderTemplate(customCode, { profile }) 
-      : ''
-  );
 </script>
 
-<div class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-hidden relative print:shadow-none" 
-     style="width: 210mm; height: 297mm; min-width: 210mm; min-height: 297mm;">
-  
-  {#if templateId === 'custom' && customCode}
-    <!-- Custom Template (Raw HTML) -->
-    <div class="w-full h-full overflow-hidden">
-      {@html renderedCustomCode}
-    </div>
+{#if templateId === 'custom'}
+  <div class="h-full flex items-start justify-center pt-8 pb-32">
+     <IframeRenderer html={customCode || ''} {profile} />
+  </div>
 
-  {:else if templateId === 'classic'}
+{:else}
+  <!-- Standard Templates (Classic / Modern / Minimal) -->
+  <div class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-y-auto relative print:shadow-none" 
+       style="width: 210mm; height: 297mm; min-width: 210mm; min-height: 297mm;">
+
+  {#if templateId === 'classic'}
     <!-- Classic Template -->
     <div class="p-10">
       <header class="text-center mb-10">
@@ -239,5 +234,5 @@
     <!-- Blank Template -->
     <div class="h-full w-full bg-white"></div>
   {/if}
-
-</div>
+  </div>
+{/if}

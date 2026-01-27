@@ -10,50 +10,58 @@
 
   let { onClose, onSave, initialCode = '' } = $props<Props>();
 
-  let code = $state(initialCode || `<!-- 
-  Available Data:
-  - profile.basics.firstName
-  - profile.experience[]
-  - profile.skills[]
-  ... and so on.
--->
+  const defaultTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; color: #333; }
+    h1 { margin-bottom: 0.5rem; }
+    .job { margin-bottom: 1.5rem; border-left: 4px solid #3b82f6; padding-left: 1rem; }
+    .date { color: #64748b; font-size: 0.9rem; margin-bottom: 0.25rem; }
+  </style>
+</head>
+<body>
+  <div id="app">Loading Profile...</div>
 
-<div class="p-8 font-sans">
-  <h1 class="text-3xl font-bold text-slate-800">
-    {profile.basics.firstName} {profile.basics.lastName}
-  </h1>
-  <p class="text-blue-600">{profile.basics.title}</p>
-  
-  <hr class="my-4"/>
-  
-  <div class="grid grid-cols-2 gap-4">
-    <div>
-      <h2 class="font-bold uppercase text-xs text-slate-400 mb-2">Experience</h2>
-      {#each profile.experience as exp}
-        <div class="mb-4">
-          <p class="font-bold">{exp.role}</p>
-          <p class="text-xs text-slate-500">{exp.company}</p>
-        </div>
-      {/each}
-    </div>
-    
-    <div>
-      <h2 class="font-bold uppercase text-xs text-slate-400 mb-2">Skills</h2>
-      <div class="flex flex-wrap gap-1">
-        {#each profile.skills as skill}
-          <span class="px-2 py-1 bg-slate-100 rounded text-xs">
-            {skill.name}
-          </span>
-        {/each}
-      </div>
-    </div>
-  </div>
-</div>
+  <script>
+    async function render() {
+      // 1. Fetch Profile Data (Mock API)
+      const res = await fetch('/api/profile');
+      const profile = await res.json();
 
-<style>
-  /* Add custom CSS here */
-  h1 { color: #333; }
-</style>`);
+      // 2. Build HTML
+      const html = \`
+        <h1>\${profile.basics.firstName} \${profile.basics.lastName}</h1>
+        <p class="lead">\${profile.basics.title}</p>
+        <p>\${profile.basics.summary}</p>
+        <hr style="margin: 2rem 0; border:none; border-top:1px solid #eee;" />
+        
+        <h2>Experience</h2>
+        \${profile.experience.map(exp => \`
+          <div class="job">
+            <h3>\${exp.role} <span>at \${exp.company}</span></h3>
+            <p class="date">\${exp.startDate} - \${exp.current ? 'Present' : exp.endDate}</p>
+            <p>\${exp.raw_context || ''}</p>
+          </div>
+        \`).join('')}
+      \`;
+
+      // 3. Render
+      document.getElementById('app').innerHTML = html;
+    }
+
+    render();
+  <\/script>
+</body>
+</html>`;
+
+  let code = $state(initialCode || defaultTemplate);
+
+  $effect(() => {
+    if (initialCode) {
+      code = initialCode;
+    }
+  });
 
   function handleSave() {
     onSave(code);
@@ -84,7 +92,7 @@
         </div>
         <div>
           <h2 class="text-lg font-bold text-slate-200">Custom Template Editor</h2>
-          <p class="text-xs text-slate-500 font-medium">Write HTML/Svelte-like syntax to design your own layout.</p>
+          <p class="text-xs text-slate-500 font-medium">Pure Mode: Write standard HTML & JavaScript.</p>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -119,14 +127,14 @@
         bind:value={code}
         class="flex-1 bg-slate-900 text-slate-300 font-mono text-xs p-6 outline-none resize-none leading-relaxed"
         spellcheck="false"
-        placeholder="<div>Your HTML here...</div>"
+        placeholder="<html>...</html>"
       ></textarea>
     </div>
 
     <!-- Footer Status -->
     <div class="px-6 py-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2 text-[10px] text-slate-500">
       <AlertCircle size={12} />
-      <span>Supports basic HTML and Svelte-like &#123;#each&#125; blocks. Scripts are disabled for security.</span>
+      <span>Standard Sandbox Environment. Use &lt;script&gt; to fetch data via /api/profile.</span>
     </div>
   </div>
 </div>
