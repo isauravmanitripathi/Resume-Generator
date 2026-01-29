@@ -29,6 +29,9 @@
 
   let activeSubTab = $state('ai');
   let customCode = $state('');
+  
+  // Mobile view toggle: 'editor' or 'preview'
+  let mobileView = $state<'editor' | 'preview'>('editor');
 
   const navTabs = [
     { id: 'ai', name: 'AI Mode', icon: Sparkles, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -301,23 +304,23 @@
 
 <div class="h-full flex flex-col overflow-hidden">
   <!-- Header -->
-  <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shrink-0">
+  <header class="bg-white border-b border-slate-200 px-4 md:px-8 py-3 md:py-4 flex flex-col md:flex-row md:items-center justify-between shrink-0 gap-3">
     <div class="flex items-center gap-4">
       <div class="p-2 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-100">
         <Sparkles size={20} />
       </div>
       <div>
-        <h1 class="text-xl font-bold text-slate-900 tracking-tight">AI Architect</h1>
-        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Version 1.0 • Phase 2</p>
+        <h1 class="text-lg md:text-xl font-bold text-slate-900 tracking-tight">AI Architect</h1>
+        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 hidden sm:block">Version 1.0 • Phase 2</p>
       </div>
     </div>
     
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 md:gap-3 flex-wrap">
       <!-- Resume Selector -->
-      <div class="relative">
+      <div class="relative flex-1 min-w-[140px] md:flex-none">
         <select 
           bind:value={activeResumeId}
-          class="pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none hover:bg-slate-100 transition-all cursor-pointer min-w-[200px]"
+          class="w-full pl-3 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none appearance-none hover:bg-slate-100 transition-all cursor-pointer md:min-w-[200px]"
         >
           {#each resumeList as res}
             <option value={res.id}>{res.name}</option>
@@ -337,30 +340,30 @@
         title="New Tailored Resume"
       >
         <Plus size={16} />
-        <span>New</span>
+        <span class="hidden sm:inline">New</span>
       </button>
 
-      <div class="h-6 w-px bg-slate-200 mx-1"></div>
+      <div class="hidden md:block h-6 w-px bg-slate-200 mx-1"></div>
       
       <button 
         onclick={handleSaveResume}
-        class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex items-center gap-2 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        class="p-2 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all flex items-center gap-1 md:gap-2 md:px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         title="Save Resume"
       >
         <Save size={16} />
-        <span>Save</span>
+        <span class="hidden lg:inline">Save</span>
       </button>
 
       <button 
         onclick={handleDeleteResume}
-        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-2 px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+        class="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all flex items-center gap-1 md:gap-2 md:px-3 text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed"
         title="Delete Resume"
       >
         <Trash2 size={16} />
-        <span>Delete</span>
+        <span class="hidden lg:inline">Delete</span>
       </button>
 
-      <div class="h-6 w-px bg-slate-200 mx-1"></div>
+      <div class="hidden md:block h-6 w-px bg-slate-200 mx-1"></div>
 
       <button 
         onclick={refreshData}
@@ -369,16 +372,35 @@
       >
         <RefreshCw size={18} />
       </button>
-      <div class="h-6 w-px bg-slate-200 mx-1"></div>
-      <a href="/vault" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm">
+      <a href="/vault" class="hidden sm:block px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm">
         Edit Vault
       </a>
     </div>
   </header>
 
-  <div class="flex-1 flex overflow-hidden">
-    <!-- Sub-Navigation Sidebar (Vertical) -->
-    <nav class="w-20 bg-white border-r border-slate-200 flex flex-col items-center py-6 gap-6 shrink-0 relative z-10">
+  <!-- Mobile View Toggle (Only visible on small screens) -->
+  <div class="md:hidden flex bg-white border-b border-slate-200 p-2">
+    <button 
+      onclick={() => mobileView = 'editor'}
+      class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2
+      {mobileView === 'editor' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}"
+    >
+      <Sparkles size={14} />
+      Editor
+    </button>
+    <button 
+      onclick={() => mobileView = 'preview'}
+      class="flex-1 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2
+      {mobileView === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}"
+    >
+      <Eye size={14} />
+      Preview
+    </button>
+  </div>
+
+  <div class="flex-1 flex overflow-hidden relative">
+    <!-- Sub-Navigation Sidebar (Desktop Only) -->
+    <nav class="hidden md:flex w-20 bg-white border-r border-slate-200 flex-col items-center py-6 gap-6 shrink-0 relative z-10">
       {#each navTabs as tab}
         {@const Icon = tab.icon}
         <button
@@ -405,10 +427,11 @@
       {/each}
     </nav>
 
-    <!-- Content Pane (Dynamic) -->
-    <div class="w-[400px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden">
+    <!-- Content Pane (Dynamic) - Hidden on mobile when preview is active -->
+    <div class="flex-1 md:flex-none md:w-[400px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-hidden
+      {mobileView === 'preview' ? 'hidden md:flex' : 'flex'}">
       <!-- Tab Header -->
-      <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+      <div class="p-4 md:p-6 border-b border-slate-100 flex items-center justify-between">
         <h2 class="text-sm font-black uppercase tracking-[0.2em] text-slate-800 flex items-center gap-2">
           {#if activeSubTab === 'ai'}<Sparkles size={16} class="text-blue-600" /> AI Mode{/if}
           {#if activeSubTab === 'info'}<Database size={16} class="text-emerald-600" /> Explorer{/if}
@@ -418,7 +441,7 @@
         <span class="text-[10px] font-bold text-slate-400">Section 0{navTabs.findIndex(t => t.id === activeSubTab) + 1}</span>
       </div>
 
-      <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
+      <div class="flex-1 overflow-y-auto p-4 md:p-6 scrollbar-hide">
         {#if activeSubTab === 'ai'}
           <AIArchitect 
             {profile}
@@ -455,18 +478,19 @@
       </div>
     </div>
 
-    <!-- Preview Surface -->
-    <main class="flex-1 bg-slate-50/30 overflow-y-auto p-8 lg:p-12 relative">
-      <div class="absolute top-6 right-8 flex items-center gap-4 text-slate-300">
+    <!-- Preview Surface - Hidden on mobile when editor is active -->
+    <main class="flex-1 bg-slate-50/30 overflow-y-auto p-4 md:p-8 lg:p-12 relative
+      {mobileView === 'editor' ? 'hidden md:block' : 'block'}">
+      <div class="absolute top-4 md:top-6 right-4 md:right-8 flex items-center gap-4 text-slate-300">
          <div class="flex items-center gap-2">
            <Eye size={14} />
-           <span class="text-[10px] font-black uppercase tracking-widest">Live View</span>
+           <span class="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Live View</span>
          </div>
       </div>
 
-      <div class="min-h-full flex items-start justify-center">
+      <div class="min-h-full flex items-start justify-center pt-8 md:pt-0">
         {#if appliedProfile}
-          <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
+          <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm resume-container">
             <ResumePreview 
               profile={appliedProfile} 
               templateId={selectedTemplate} 
@@ -475,12 +499,12 @@
           </div>
         {:else if profile}
           <!-- In case appliedProfile is null but profile exists -->
-          <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
+          <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm resume-container">
              <ResumePreview {profile} templateId={selectedTemplate} {customCode} />
           </div>
         {:else}
           <!-- Empty State -->
-           <div class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 mt-32">
+           <div class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400 mt-16 md:mt-32">
             <div class="bg-white p-6 rounded-full mb-4 shadow-sm">
               <FileText size={48} class="text-slate-200" />
             </div>
@@ -493,6 +517,21 @@
         {/if}
       </div>
     </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around py-2 px-4 z-50">
+      {#each navTabs as tab}
+        {@const Icon = tab.icon}
+        <button
+          onclick={() => { activeSubTab = tab.id; mobileView = 'editor'; }}
+          class="flex flex-col items-center gap-1 p-2 rounded-xl transition-all
+          {activeSubTab === tab.id ? tab.bg + ' ' + tab.color : 'text-slate-400'}"
+        >
+          <Icon size={20} />
+          <span class="text-[9px] font-bold uppercase">{tab.id}</span>
+        </button>
+      {/each}
+    </nav>
   </div>
 </div>
 
@@ -533,4 +572,29 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #cbd5e1;
   }
+
+  /* Mobile Resume Scaling */
+  @media (max-width: 768px) {
+    .resume-container {
+      transform: scale(0.4);
+      transform-origin: top center;
+      margin-bottom: -60%; /* Compensate for scaled whitespace */
+    }
+  }
+
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .resume-container {
+      transform: scale(0.65);
+      transform-origin: top center;
+      margin-bottom: -35%;
+    }
+  }
+
+  /* Add padding at bottom for mobile bottom nav */
+  @media (max-width: 768px) {
+    main {
+      padding-bottom: 80px !important;
+    }
+  }
 </style>
+

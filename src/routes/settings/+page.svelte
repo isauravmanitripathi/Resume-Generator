@@ -81,37 +81,37 @@
   }
 </script>
 
-<div class="p-8 max-w-5xl mx-auto pb-24">
-  <header class="mb-10 flex items-end justify-between">
+<div class="p-4 md:p-8 max-w-5xl mx-auto pb-24">
+  <header class="mb-6 md:mb-10 flex flex-col gap-4 md:gap-0 md:flex-row md:items-end md:justify-between">
     <div>
       <div class="flex items-center gap-3 mb-2">
         <div class="p-2 bg-blue-600 text-white rounded-lg">
           <Settings size={24} />
         </div>
-        <h1 class="text-3xl font-bold text-slate-900">Settings</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-slate-900">Settings</h1>
       </div>
-      <p class="text-slate-500">Securely manage your AI provider configurations and prompt templates.</p>
+      <p class="text-slate-500 text-sm md:text-base">Securely manage your AI provider configurations and prompt templates.</p>
     </div>
 
     <!-- Tab Switcher -->
-    <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+    <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 overflow-x-auto">
       <button 
         onclick={() => activeTab = 'providers'}
-        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        class="px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap
         {activeTab === 'providers' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
       >
         Providers
       </button>
       <button 
         onclick={() => activeTab = 'prompts'}
-        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        class="px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap
         {activeTab === 'prompts' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
       >
         Prompts
       </button>
       <button 
         onclick={() => activeTab = 'activity'}
-        class="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all
+        class="px-3 md:px-4 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap
         {activeTab === 'activity' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
       >
         Activity
@@ -310,7 +310,7 @@
     </div>
   {/if}
 
-  <div class="fixed bottom-0 right-0 left-0 md:left-64 p-4 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 bg-white/60 backdrop-blur-md border-t border-slate-200 md:bg-transparent md:border-none z-30">
+  <div class="fixed bottom-0 left-0 right-0 p-4 md:p-8 flex flex-col sm:flex-row items-center justify-center sm:justify-end gap-3 bg-white/80 backdrop-blur-md border-t border-slate-200 z-30">
     <div class="bg-slate-900/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 text-[10px] sm:text-xs font-medium text-slate-600 flex items-center gap-2">
       <Shield size={14} class="text-emerald-600" /> End-to-End Encrypted & Private
     </div>

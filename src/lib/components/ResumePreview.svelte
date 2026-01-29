@@ -73,18 +73,20 @@
   }
 </script>
 
-<div class="fixed bottom-8 right-8 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
+<div class="fixed bottom-4 md:bottom-8 right-4 md:right-8 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
   <button 
     onclick={handleDownload}
     disabled={isDownloading}
-    class="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-black hover:scale-105 transition-all text-sm disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+    class="flex items-center gap-2 px-4 md:px-6 py-2 md:py-3 bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-black hover:scale-105 transition-all text-xs md:text-sm disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
   >
     {#if isDownloading}
       <Loader2 size={16} class="animate-spin" />
-      <span>Generating...</span>
+      <span class="hidden sm:inline">Generating...</span>
+      <span class="sm:hidden">...</span>
     {:else}
       <Download size={16} />
-      <span>Download PDF</span>
+      <span class="hidden sm:inline">Download PDF</span>
+      <span class="sm:hidden">PDF</span>
     {/if}
   </button>
 </div>
