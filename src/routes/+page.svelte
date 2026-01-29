@@ -73,9 +73,10 @@
     }));
 
     // Apply tailored Education
+    // Apply tailored Education
     merged.education = merged.education.map(edu => ({
       ...edu,
-      studyType: tailored.education[edu.id] || edu.studyType
+      raw_context: tailored.education[edu.id] || edu.raw_context
     }));
 
     // Apply tailored Skills

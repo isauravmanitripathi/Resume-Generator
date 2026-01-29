@@ -184,6 +184,9 @@
                   <p class="text-xs font-bold text-slate-800">{edu.studyType}</p>
                   <p class="text-[10px] text-slate-500">{edu.institution}</p>
                   <p class="text-[9px] text-slate-400 font-medium">{edu.startDate} - {edu.endDate}</p>
+                  {#if edu.raw_context}
+                     <p class="text-[10px] leading-relaxed text-slate-600 mt-1 whitespace-pre-line text-xs">{edu.raw_context}</p>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -249,6 +252,9 @@
                 <div>
                   <p class="text-xs font-bold text-white">{edu.studyType}</p>
                   <p class="text-[10px] text-slate-400 mt-0.5">{edu.institution}</p>
+                  {#if edu.raw_context}
+                     <p class="text-[10px] leading-relaxed text-slate-300 mt-2 whitespace-pre-line">{edu.raw_context}</p>
+                  {/if}
                 </div>
               {/each}
             </div>
@@ -331,6 +337,9 @@
             <div class="mb-4">
               <p class="text-xs font-bold text-slate-700">{edu.studyType}</p>
               <p class="text-[10px] text-slate-400">{edu.institution}</p>
+              {#if edu.raw_context}
+                 <p class="text-[10px] leading-relaxed text-slate-500 mt-1 whitespace-pre-line">{edu.raw_context}</p>
+              {/if}
             </div>
           {/each}
         </section>

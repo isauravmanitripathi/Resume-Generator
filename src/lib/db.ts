@@ -54,6 +54,8 @@ export interface EducationItem {
   endDate: string;
   score: string;
   location: string;
+  url?: string; // Optional URL for certificates etc.
+  raw_context?: string; // Description of what they studied/did
 }
 
 export interface SkillItem {

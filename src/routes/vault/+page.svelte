@@ -54,7 +54,7 @@
 
   function addEducation() {
     profile.education = [...profile.education, {
-      id: uuidv4(), institution: '', area: '', studyType: '', startDate: '', endDate: '', score: '', location: ''
+      id: uuidv4(), institution: '', area: '', studyType: '', startDate: '', endDate: '', score: '', location: '', raw_context: ''
     }];
     save();
   }
@@ -340,6 +340,10 @@
                   </div>
                   <input bind:value={edu.score} oninput={save} class="input-field bg-white" placeholder="GPA / Score" />
                   <input bind:value={edu.location} oninput={save} class="input-field bg-white" placeholder="Location" />
+                </div>
+                <div class="mt-4">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Education Details (For AI Context)</label>
+                  <textarea bind:value={edu.raw_context} oninput={save} class="input-field bg-white min-h-[100px]" placeholder="Describe your coursework, honors, thesis, or extracurriculars..."></textarea>
                 </div>
               </div>
             {/each}

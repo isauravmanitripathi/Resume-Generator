@@ -67,7 +67,9 @@
         contextContent = item ? `${item.role} at ${item.company}: ${item.raw_context || ''}` : "";
       } else if (selectedType === 'education') {
         const item = profile.education.find(e => e.id === selectedId);
-        contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}` : "";
+        // Include the new raw_context description
+        contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}. Details: ${item.raw_context || ''}` : "";
+        promptId = "education-tailor";
       } else if (selectedType === 'skills') {
         const item = profile.skills.find(s => s.id === selectedId);
         contextContent = item ? `${item.name} (${item.category})` : "";
@@ -83,6 +85,7 @@
        
        const userPrompt = template.userPromptTemplate
         .replace('{{experience}}', contextContent)
+        .replace('{{education}}', contextContent) // Injected here
         .replace('{{profileSummary}}', contextContent)
         .replace('{{jobDescription}}', jobDescription)
         .replace('{{numPoints}}', numPoints.toString());

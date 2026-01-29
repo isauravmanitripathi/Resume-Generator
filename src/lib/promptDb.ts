@@ -55,6 +55,14 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
         systemPrompt: 'Return a JSON string exactly in this format: {"greetings": "hi"}',
         userPromptTemplate: 'Return hit in JSON format.',
         isCustom: false
+    },
+    'education-tailor': {
+        id: 'education-tailor',
+        name: 'Education Tailoring',
+        description: 'Refines education details to highlight relevance to the job.',
+        systemPrompt: 'You are an expert resume writer. Rewrite the education details to highlight coursework, projects, or honors relevant to the job description.\nIMPORTANT: Return strictly as a JSON object: {"tailored_content": "your content here"}. succinct and impressive.',
+        userPromptTemplate: 'Education Details:\n{{education}}\n\nJob Description:\n{{jobDescription}}\n\nRewrite to emphasize relevance. Return ONLY the JSON object.',
+        isCustom: false
     }
 };
 
