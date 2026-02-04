@@ -5,6 +5,7 @@
   import CreativeStudio from './creative/CreativeStudio.svelte';
   import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
   import ElegantTemplate from './templates/ElegantTemplate.svelte';
+  import CupertinoTemplate from './templates/CupertinoTemplate.svelte';
   import CoverLetterModal from './architect/CoverLetterModal.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
@@ -422,6 +423,8 @@
       <ExecutiveTemplate {profile} />
     {:else if templateId === 'elegant'}
       <ElegantTemplate {profile} />
+    {:else if templateId === 'cupertino'}
+      <CupertinoTemplate {profile} />
   {/if}
   </div>
 {/if}

@@ -863,7 +863,241 @@ function generateElegantPDF(profile: Profile) {
 }
 
 // ============================================
-// MAIN EXPORT
+// CUPERTINO TEMPLATE (Clean, Apple-inspired)
+// ============================================
+const CUPERTINO_COLORS = {
+    primary: '#111827',    // slate-900 (Text)
+    accent: '#000000',     // pure black (Headings)
+    secondary: '#6b7280',  // slate-500 (Subtext)
+    line: '#e5e7eb',       // slate-200 (Dividers)
+};
+
+function generateCupertinoPDF(profile: Profile) {
+    const content: any[] = [];
+
+    // 1. Header (Centered)
+    // Name
+    content.push({
+        text: `${profile.basics.firstName} ${profile.basics.lastName}`,
+        fontSize: 24,
+        bold: true,
+        alignment: 'center',
+        color: CUPERTINO_COLORS.accent,
+        margin: [0, 0, 0, 8]
+    });
+
+    // Contact Info (Single Line)
+    const contacts = [
+        profile.basics.city ? `${profile.basics.city}, ${profile.basics.state}` : '',
+        profile.basics.email,
+        profile.basics.phone,
+        profile.socials.linkedin ? 'LinkedIn' : '',
+        profile.socials.github ? 'GitHub' : '',
+        profile.socials.website ? 'Portfolio' : ''
+    ].filter(Boolean);
+
+    if (contacts.length > 0) {
+        content.push({
+            text: contacts.join(' • '),
+            fontSize: 10,
+            color: CUPERTINO_COLORS.primary,
+            alignment: 'center',
+            margin: [0, 0, 0, 20]
+        });
+    }
+
+    // 2. Professional Summary
+    if (profile.basics.summary) {
+        content.push({
+            text: 'PROFESSIONAL SUMMARY',
+            fontSize: 10,
+            bold: true,
+            color: CUPERTINO_COLORS.accent,
+            margin: [0, 0, 0, 3]
+        });
+        content.push({
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: CUPERTINO_COLORS.primary }],
+            margin: [0, 0, 0, 8]
+        });
+        content.push({
+            text: profile.basics.summary,
+            fontSize: 10,
+            color: CUPERTINO_COLORS.primary,
+            lineHeight: 1.4,
+            alignment: 'justify',
+            margin: [0, 0, 0, 20]
+        });
+    }
+
+    // 3. Work Experience
+    if (profile.experience.length > 0) {
+        content.push({
+            text: 'WORK EXPERIENCE',
+            fontSize: 10,
+            bold: true,
+            color: CUPERTINO_COLORS.accent,
+            margin: [0, 0, 0, 3]
+        });
+        content.push({
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: CUPERTINO_COLORS.primary }],
+            margin: [0, 0, 0, 10]
+        });
+
+        profile.experience.forEach(exp => {
+            // Header Row: Role | Company .............. Location | Dates
+            // To achieve "Role | Company", we concat them.
+            // Split: Left (Role | Company), Right (City | Dates)
+            content.push({
+                columns: [
+                    {
+                        text: [
+                            { text: exp.role, bold: true, fontSize: 11, color: CUPERTINO_COLORS.accent },
+                            { text: ` | ${exp.company}`, fontSize: 11, color: CUPERTINO_COLORS.primary }
+                        ],
+                        width: '*'
+                    },
+                    {
+                        text: [
+                            { text: exp.location ? `${exp.location} | ` : '', fontSize: 10, color: CUPERTINO_COLORS.primary, italics: true },
+                            { text: `${exp.startDate} – ${exp.current ? 'Present' : exp.endDate}`, fontSize: 10, color: CUPERTINO_COLORS.primary, italics: true }
+                        ],
+                        width: 'auto',
+                        alignment: 'right'
+                    }
+                ],
+                margin: [0, 0, 0, 5]
+            });
+
+            if (exp.raw_context) {
+                const bullets = exp.raw_context.split('\n').filter(l => l.trim()).map(l => ({
+                    text: l.replace(/^•\s*/, ''),
+                    fontSize: 10,
+                    margin: [0, 3, 0, 3],
+                    lineHeight: 1.3
+                }));
+                content.push({
+                    ul: bullets,
+                    margin: [15, 0, 0, 15],
+                    color: CUPERTINO_COLORS.primary
+                });
+            } else {
+                content.push({ text: '', margin: [0, 0, 0, 15] });
+            }
+        });
+    }
+
+    // 4. Education
+    if (profile.education.length > 0) {
+        content.push({
+            text: 'EDUCATION',
+            fontSize: 10,
+            bold: true,
+            color: CUPERTINO_COLORS.accent,
+            margin: [0, 0, 0, 3]
+        });
+        content.push({
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: CUPERTINO_COLORS.primary }],
+            margin: [0, 0, 0, 10]
+        });
+
+        profile.education.forEach(edu => {
+            content.push({
+                columns: [
+                    { text: edu.institution, bold: true, fontSize: 11, color: CUPERTINO_COLORS.accent, width: '*' },
+                    { text: `${edu.startDate} – ${edu.endDate}`, fontSize: 10, color: CUPERTINO_COLORS.primary, alignment: 'right', width: 'auto' }
+                ],
+                margin: [0, 0, 0, 2]
+            });
+            content.push({
+                columns: [
+                    { text: `${edu.studyType} in ${edu.area}`, fontSize: 10, color: CUPERTINO_COLORS.primary, italics: true, width: '*' },
+                    { text: edu.location || '', fontSize: 10, color: CUPERTINO_COLORS.primary, italics: true, alignment: 'right', width: 'auto' }
+                ],
+                margin: [0, 0, 0, 10]
+            });
+        });
+        content.push({ text: '', margin: [0, 5, 0, 5] });
+    }
+
+    // 5. Technical Projects (Optional - using Projects array if populated)
+    if (profile.projects && profile.projects.length > 0) {
+        content.push({
+            text: 'TECHNICAL PROJECTS',
+            fontSize: 10,
+            bold: true,
+            color: CUPERTINO_COLORS.accent,
+            margin: [0, 0, 0, 3]
+        });
+        content.push({
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: CUPERTINO_COLORS.primary }],
+            margin: [0, 0, 0, 10]
+        });
+
+        profile.projects.forEach(proj => {
+            content.push({
+                columns: [
+                    {
+                        text: [
+                            { text: proj.name, bold: true, fontSize: 11, color: CUPERTINO_COLORS.accent },
+                            { text: proj.url ? ' | Repository' : '', fontSize: 10, color: CUPERTINO_COLORS.secondary, link: proj.url }
+                        ],
+                        width: '*'
+                    },
+                    { text: '', width: 'auto' } // Date usually not in project object, if needed add later
+                ],
+                margin: [0, 0, 0, 5]
+            });
+
+            if (proj.raw_context) {
+                const bullets = proj.raw_context.split('\n').filter(l => l.trim()).map(l => ({
+                    text: l.replace(/^•\s*/, ''),
+                    fontSize: 10,
+                    margin: [0, 3, 0, 3],
+                    lineHeight: 1.3
+                }));
+                content.push({
+                    ul: bullets,
+                    margin: [15, 0, 0, 15],
+                    color: CUPERTINO_COLORS.primary
+                });
+            }
+        });
+    }
+
+    // 6. Skills
+    if (profile.skills.length > 0) {
+        content.push({
+            text: 'SKILLS',
+            fontSize: 10,
+            bold: true,
+            color: CUPERTINO_COLORS.accent,
+            margin: [0, 0, 0, 3]
+        });
+        content.push({
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: CUPERTINO_COLORS.primary }],
+            margin: [0, 0, 0, 10]
+        });
+
+        // Simple comma separated list to match the "John Doe" example style (SQL, Python, etc)
+        const skillList = profile.skills.map(s => s.name).join(' • ');
+        content.push({
+            text: skillList,
+            fontSize: 10,
+            color: CUPERTINO_COLORS.primary,
+            lineHeight: 1.5
+        });
+    }
+
+    return {
+        pageSize: 'A4' as any,
+        pageMargins: [40, 40, 40, 40] as [number, number, number, number],
+        content,
+        defaultStyle: { font: 'Roboto' }
+    };
+}
+
+// ============================================
+// MAIN EXPORT (Existing)
 // ============================================
 
 /**
@@ -879,6 +1113,8 @@ export function generateResumeDocDefinition(profile: Profile, templateId: string
             return generateExecutivePDF(profile);
         case 'elegant':
             return generateElegantPDF(profile);
+        case 'cupertino':
+            return generateCupertinoPDF(profile);
         case 'classic':
         default:
             return generateClassicPDF(profile);

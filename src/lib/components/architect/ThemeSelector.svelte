@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles, Code, Database, Hammer, Shield } from 'lucide-svelte';
+  import {  Layout, FileText, MousePointer2, Eraser, ChevronRight, Sparkles, Code, Database, Hammer, Shield, Circle } from 'lucide-svelte';
   import CustomThemeEditor from '$lib/components/architect/studio/CustomThemeEditor.svelte';
 
   interface Props {
@@ -18,6 +18,7 @@
     { id: 'executive', name: 'Executive', icon: Shield, desc: 'Bold & authoritative' },
     { id: 'elegant', name: 'Elegant', icon: Sparkles, desc: 'Sophisticated & Centered' },
     { id: 'modern', name: 'Modern', icon: Layout, desc: 'High-impact design' },
+    { id: 'cupertino', name: 'Cupertino', icon: Circle, desc: 'Apple-inspired Clean' },
     { id: 'minimal', name: 'Minimal', icon: MousePointer2, desc: 'Clean & simple' },
     { id: 'blank', name: 'Blank', icon: Eraser, desc: 'Empty canvas' },
     { id: 'custom', name: 'Custom', icon: Code, desc: 'Dev Mode' },
@@ -71,6 +72,21 @@
                    <div class="w-full h-1 bg-slate-50"></div>
                    <div class="w-full h-1 bg-slate-50"></div>
                    <div class="w-full h-1 bg-slate-50"></div>
+                 </div>
+               </div>
+            {:else if t.id === 'cupertino'}
+               <!-- Cupertino Preview -->
+               <div class="h-full flex flex-col items-center pt-2 px-1">
+                 <div class="w-1/2 h-1.5 bg-black rounded-sm mb-1"></div>
+                 <div class="w-2/3 h-0.5 bg-slate-400 mb-2"></div>
+                 <div class="w-full h-px bg-slate-200 mb-1"></div>
+                 <div class="w-full h-px bg-slate-200 mb-1"></div>
+                 <div class="w-full pl-1 mt-1 space-y-1">
+                   <div class="flex justify-between">
+                      <div class="w-1/3 h-1 bg-black rounded-sm"></div>
+                      <div class="w-1/4 h-1 bg-slate-300 rounded-sm"></div>
+                   </div>
+                   <div class="w-full h-0.5 bg-slate-200"></div>
                  </div>
                </div>
             {:else if t.id === 'minimal'}
