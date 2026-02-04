@@ -4,6 +4,7 @@
   import IframeRenderer from './IframeRenderer.svelte';
   import CreativeStudio from './creative/CreativeStudio.svelte';
   import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
+  import ElegantTemplate from './templates/ElegantTemplate.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
     Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2
@@ -400,6 +401,8 @@
 
     {:else if templateId === 'executive'}
       <ExecutiveTemplate {profile} />
+    {:else if templateId === 'elegant'}
+      <ElegantTemplate {profile} />
   {/if}
   </div>
 {/if}
