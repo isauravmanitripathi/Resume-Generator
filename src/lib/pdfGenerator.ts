@@ -920,32 +920,9 @@ export interface CoverLetterData {
 export async function generateCoverLetterPDF(profile: Profile, data: CoverLetterData, filename?: string) {
     const content: any[] = [];
 
-    // 1. Header (Same as Resume Header logic for consistency, or simplified standard letter head)
-    // Let's use a standard professional letterhead style
+    // 1. Header removed as per user request
+    // Content starts directly with Date
 
-    content.push({
-        text: `${profile.basics.firstName} ${profile.basics.lastName}`.toUpperCase(),
-        fontSize: 24,
-        bold: true,
-        alignment: 'center',
-        margin: [0, 0, 0, 5]
-    });
-
-    const contacts = [
-        profile.basics.email,
-        profile.basics.phone,
-        profile.basics.city ? `${profile.basics.city}, ${profile.basics.state}` : ''
-    ].filter(Boolean);
-
-    content.push({
-        text: contacts.join(' | '),
-        fontSize: 9,
-        color: '#64748b',
-        alignment: 'center',
-        margin: [0, 0, 0, 20]
-    });
-
-    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }], margin: [0, 0, 0, 20] });
 
     // 2. Date
     const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -984,6 +961,22 @@ export async function generateCoverLetterPDF(profile: Profile, data: CoverLetter
     content.push({ text: 'Sincerely,', fontSize: 10, margin: [0, 20, 0, 30] });
 
     content.push({ text: `${profile.basics.firstName} ${profile.basics.lastName}`, fontSize: 10, bold: true });
+
+    // 8. Contact Details (Moved to bottom)
+    const contacts = [
+        profile.basics.email,
+        profile.basics.phone,
+        profile.basics.city ? `${profile.basics.city}, ${profile.basics.state}` : ''
+    ].filter(Boolean);
+
+    if (contacts.length > 0) {
+        content.push({
+            text: contacts.join(' | '),
+            fontSize: 9,
+            color: '#64748b',
+            margin: [0, 5, 0, 0]
+        });
+    }
 
     const docDefinition = {
         pageSize: 'A4' as any,
