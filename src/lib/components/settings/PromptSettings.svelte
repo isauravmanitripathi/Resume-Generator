@@ -45,9 +45,9 @@
   }
 </script>
 
-<div class="w-full flex flex-col lg:flex-row gap-4 lg:gap-8 min-h-[400px] lg:min-h-[600px] h-auto lg:h-[70vh]">
+<div class="w-full flex flex-col lg:flex-row gap-8 min-h-[600px] h-[70vh]">
   <!-- Prompt List -->
-  <aside class="w-full lg:w-[320px] shrink-0 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-[200px] lg:h-full">
+  <aside class="w-full lg:w-[320px] shrink-0 bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm flex flex-col h-full">
     <div class="p-4 border-b border-slate-100 bg-slate-50/50">
        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Library</span>
     </div>
@@ -55,12 +55,12 @@
       {#each prompts as p}
         <button 
           onclick={() => selectedId = p.id}
-          class="w-full p-3 lg:p-4 border-b border-slate-50 text-left transition-all hover:bg-slate-50 group flex items-center justify-between
+          class="w-full p-4 border-b border-slate-50 text-left transition-all hover:bg-slate-50 group flex items-center justify-between
           {selectedId === p.id ? 'bg-blue-50/50 border-blue-100' : ''}"
         >
           <div class="min-w-0">
             <p class="text-xs font-bold truncate {selectedId === p.id ? 'text-blue-600' : 'text-slate-700'}">{p.name}</p>
-            <p class="text-[9px] text-slate-400 mt-0.5 line-clamp-1 hidden sm:block">{p.description}</p>
+            <p class="text-[9px] text-slate-400 mt-0.5 line-clamp-1">{p.description}</p>
           </div>
           <ChevronRight size={14} class="text-slate-300 group-hover:translate-x-1 transition-transform shrink-0 ml-2" />
         </button>
@@ -69,7 +69,7 @@
   </aside>
 
   <!-- Editor -->
-  <main class="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden min-h-[400px] lg:h-full">
+  <main class="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full">
     {#if selectedPrompt}
       <div class="flex-1 flex flex-col overflow-hidden" in:fade={{ duration: 200 }}>
         <!-- Editor Header -->

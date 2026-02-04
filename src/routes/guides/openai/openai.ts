@@ -1,55 +1,24 @@
 import { promptDb } from '$lib/promptDb';
 import { toasts } from '$lib/toastStore';
 import { logActivity } from '$lib/activityDb';
-
-/**
- * Gets a cookie value by name
- */
-export function getCookie(name: string): string | null {
-    if (typeof document === 'undefined') return null;
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-/**
- * Sets a cookie value
- */
-export function setCookie(name: string, value: string, days = 30) {
-    if (typeof document === 'undefined') return;
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/; SameSite=Strict";
-}
+import { db } from '$lib/db';
 
 /**
  * Validates OpenAI Key and Connection
+ * Note: The key should already be saved to the DB by the caller
  */
 export async function validateOpenAIAndActivate(key: string, model: string) {
     const toastId = toasts.add("Initializing Activation Flow...", "loading");
 
     try {
-        // 1. Store the key in cookie
-        toasts.update(toastId, { message: "Storing API Key safely in cookies..." });
-        setCookie('openai_api_key', key);
-
-        // 2. Fetch the "Hello JSON" prompt
+        // 1. Fetch the "Hello JSON" prompt
         toasts.update(toastId, { message: "Fetching 'Hello JSON' verification prompt..." });
         const prompt = await promptDb.prompts.get('hello-json');
         if (!prompt) {
             throw new Error("Activation prompt not found in database.");
         }
 
-        // 3. Prepare OpenAI Request
+        // 2. Prepare OpenAI Request
         toasts.update(toastId, { message: `Connecting to OpenAI (${model})...` });
 
         const requestPayload = {
@@ -84,7 +53,7 @@ export async function validateOpenAIAndActivate(key: string, model: string) {
             throw new Error(errorMsg);
         }
 
-        // 4. Validate Response
+        // 3. Validate Response
         toasts.update(toastId, { message: "Verifying hand-shake response..." });
         const content = data.choices[0].message.content;
 
@@ -138,7 +107,10 @@ export async function generateTailoredContent(
     userPrompt: string,
     model: string
 ) {
-    const key = getCookie('openai_api_key');
+    // Fetch key from secure local database instead of cookies
+    const settings = await db.settings.get('app');
+    const key = settings?.providers.openai.key;
+
     if (!key) {
         throw new Error("OpenAI API Key not found. Please activate your connection in Settings.");
     }
@@ -201,4 +173,5 @@ export async function generateTailoredContent(
         throw error;
     }
 }
+
 
