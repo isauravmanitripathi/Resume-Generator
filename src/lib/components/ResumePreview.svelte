@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Profile } from '$lib/db';
+  import { downloadResumePDF } from '$lib/pdfGenerator';
   import IframeRenderer from './IframeRenderer.svelte';
   import CreativeStudio from './creative/CreativeStudio.svelte';
   import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
@@ -20,53 +21,12 @@
   async function handleDownload() {
     if (isDownloading) return;
     isDownloading = true;
-
-    // Give UI time to paint the loading state
-    await new Promise(resolve => setTimeout(resolve, 100));
-
+    
     try {
-      // Dynamic import
-      const html2pdf = (await import('html2pdf.js')).default;
-      
-      let element: HTMLElement;
-      
-      if (templateId === 'custom') {
-        // For Custom Templates, strictly capture the iframe content
-        const iframe = document.querySelector('iframe[title="Resume Canvas"]') as HTMLIFrameElement;
-        // @ts-ignore
-        element = iframe?.contentDocument?.documentElement || iframe?.contentDocument?.body;
-        
-        if (!element) throw new Error("Could not access custom template content");
-      } else {
-        element = document.getElementById('resume-preview') as HTMLElement;
-      }
-
-      // Optimized settings
-      const opt = {
-        margin:       0,
-        filename:     `${profile.basics.firstName}_${profile.basics.lastName}_Resume.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, // Restoring higher quality (scale 1 is too blurry for text sometimes, let's try 2 safely or 1.5)
-          useCORS: true, 
-          logging: false,
-          scrollY: 0,
-          scrollX: 0
-        },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      await html2pdf().set(opt).from(element).save();
-
+      await downloadResumePDF(profile);
     } catch (e) {
-      console.error('PDF Gen Error', e);
-      // Last resort fallback
-      if (templateId === 'custom') {
-         const iframe = document.querySelector('iframe[title="Resume Canvas"]') as HTMLIFrameElement;
-         iframe?.contentWindow?.print();
-      } else {
-         window.print();
-      }
+      console.error('PDF Generation Error:', e);
+      alert('PDF generation failed: ' + (e as Error).message);
     } finally {
       isDownloading = false;
     }
@@ -129,8 +89,100 @@
 
 {:else}
   <!-- Standard Templates (Classic / Modern / Minimal) -->
-  <div id="resume-preview" class="bg-white shadow-2xl mx-auto text-slate-800 font-sans overflow-y-auto relative print:shadow-none" 
-       style="width: 210mm; height: 297mm; min-width: 210mm; min-height: 297mm;">
+  <!-- The container shows visual page separations at A4 height intervals -->
+  <div id="resume-preview" 
+       class="bg-white mx-auto text-slate-800 font-sans relative print:shadow-none resume-pages" 
+       style="width: 210mm; min-height: 297mm; min-width: 210mm;">
+    
+    <style>
+      /* Visual page separation for preview */
+      .resume-pages {
+        background: 
+          linear-gradient(to bottom, white 296.5mm, #e2e8f0 296.5mm, #e2e8f0 297mm, white 297mm);
+        background-size: 100% 297mm;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      }
+      
+      /* Page number indicators (optional visual guide) */
+      .resume-pages::after {
+        content: '';
+        position: absolute;
+        top: 297mm;
+        left: 0;
+        right: 0;
+        height: 0.5mm;
+        background: repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 296.5mm,
+          #cbd5e1 296.5mm,
+          #cbd5e1 297mm
+        );
+        pointer-events: none;
+      }
+      
+      /* Comprehensive Print Styles */
+      @media print {
+        /* Page setup */
+        @page {
+          size: A4 portrait;
+          margin: 10mm;
+        }
+        
+        /* Reset body for print */
+        body {
+          margin: 0;
+          padding: 0;
+        }
+        
+        /* Hide everything except resume */
+        body > *:not(.resume-print-container) {
+          display: none !important;
+        }
+        
+        /* Resume container - allow natural flow for multi-page */
+        #resume-preview {
+          position: static !important;
+          width: 100% !important;
+          max-width: 190mm !important;
+          min-height: auto !important;
+          height: auto !important;
+          overflow: visible !important;
+          background: white !important;
+          box-shadow: none !important;
+          margin: 0 auto;
+        }
+        
+        .resume-pages {
+          background: white !important;
+          box-shadow: none !important;
+          width: 100% !important;
+          min-height: auto !important;
+          height: auto !important;
+        }
+        
+        .resume-pages::after {
+          display: none !important;
+        }
+        
+        /* Page break control - prevent splitting items */
+        .avoid-break {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
+        }
+        
+        /* Prevent orphans at page breaks */
+        section {
+          break-inside: avoid-column;
+        }
+        
+        /* Hide UI elements during print */
+        button, nav, header:not(#resume-preview header), 
+        [data-html2canvas-ignore], .print\\:hidden {
+          display: none !important;
+        }
+      }
+    </style>
 
   {#if templateId === 'classic'}
     <!-- Classic Template -->
@@ -180,7 +232,7 @@
             </h3>
             <div class="space-y-4">
               {#each profile.education as edu}
-                <div>
+                <div class="avoid-break" style="break-inside: avoid;">
                   <p class="text-xs font-bold text-slate-800">{edu.studyType}</p>
                   <p class="text-[10px] text-slate-500">{edu.institution}</p>
                   <p class="text-[9px] text-slate-400 font-medium">{edu.startDate} - {edu.endDate}</p>
@@ -200,7 +252,7 @@
             </h3>
             <div class="space-y-8">
               {#each profile.experience as exp}
-                <div class="relative pl-4 border-l-2 border-slate-100">
+                <div class="relative pl-4 border-l-2 border-slate-100 avoid-break" style="break-inside: avoid;">
                   <div class="absolute -left-[5px] top-1 w-2 h-2 rounded-full bg-blue-600"></div>
                   <div class="mb-1">
                     <h4 class="text-sm font-bold text-slate-800">{exp.role}</h4>
@@ -249,7 +301,7 @@
             <h3 class="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Education</h3>
             <div class="space-y-5">
               {#each profile.education as edu}
-                <div>
+                <div class="avoid-break" style="break-inside: avoid;">
                   <p class="text-xs font-bold text-white">{edu.studyType}</p>
                   <p class="text-[10px] text-slate-400 mt-0.5">{edu.institution}</p>
                   {#if edu.raw_context}
@@ -275,7 +327,7 @@
           <h2 class="text-lg font-bold text-slate-900 mb-8 border-b-2 border-slate-900 pb-2 inline-block">Experience</h2>
           <div class="space-y-10">
             {#each profile.experience as exp}
-              <div>
+              <div class="avoid-break" style="break-inside: avoid;">
                 <div class="flex items-center justify-between mb-2">
                   <h4 class="text-base font-bold text-slate-900">{exp.role}</h4>
                   <span class="text-[10px] font-bold text-slate-400 uppercase">{exp.startDate} — {exp.current ? 'Present' : exp.endDate}</span>
@@ -310,7 +362,7 @@
         <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 mb-8">Experience</h2>
         <div class="space-y-12">
           {#each profile.experience as exp}
-            <div class="grid grid-cols-4 gap-4">
+            <div class="grid grid-cols-4 gap-4 avoid-break" style="break-inside: avoid;">
               <div class="text-[10px] font-bold text-slate-400">{exp.startDate} — {exp.current ? 'Present' : exp.endDate}</div>
               <div class="col-span-3">
                 <h4 class="text-sm font-bold text-slate-800">{exp.role}</h4>
@@ -334,7 +386,7 @@
         <section>
           <h2 class="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300 mb-6">Education</h2>
           {#each profile.education as edu}
-            <div class="mb-4">
+            <div class="mb-4 avoid-break" style="break-inside: avoid;">
               <p class="text-xs font-bold text-slate-700">{edu.studyType}</p>
               <p class="text-[10px] text-slate-400">{edu.institution}</p>
               {#if edu.raw_context}
