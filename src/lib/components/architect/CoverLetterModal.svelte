@@ -8,6 +8,7 @@
   import { generateTailoredContent } from '../../../routes/guides/openai/openai';
   import { generateOpenRouterContent } from '../../../routes/guides/openrouter/openrouter';
   import { toasts } from '$lib/toastStore';
+  import { logActivity } from '$lib/activityDb';
 
   interface Props {
     profile: Profile;
@@ -20,6 +21,15 @@
   let hrName = $state('');
   let isGenerating = $state(false);
   let showPromptTools = $state(false);
+
+  let resumeContext = $derived(`
+    Name: ${profile.basics.firstName} ${profile.basics.lastName}
+    Title: ${profile.basics.title}
+    Summary: ${profile.basics.summary}
+    Experience: ${profile.experience.map(e => `${e.role} at ${e.company} (${e.startDate}-${e.endDate})\n${e.raw_context}`).join('\n\n')}
+    Education: ${profile.education.map(e => `${e.studyType} in ${e.area} at ${e.institution} (${e.startDate}-${e.endDate})\n${e.raw_context || ''}`).join('\n\n')}
+    Skills: ${profile.skills.map(s => s.name).join(', ')}
+  `);
   
   // Construct the prompt preview logic
   async function generateCoverLetter() {
@@ -42,18 +52,13 @@
         : settings?.providers.openai.model || 'gpt-4.1';
 
       // 2. Prepare Resume Context (Summary + Experience + Skills)
-      const resumeContext = `
-        Name: ${profile.basics.firstName} ${profile.basics.lastName}
-        Title: ${profile.basics.title}
-        Summary: ${profile.basics.summary}
-        Experience: ${profile.experience.map(e => `${e.role} at ${e.company} (${e.startDate}-${e.endDate})`).join('. ')}
-        Skills: ${profile.skills.map(s => s.name).join(', ')}
-      `;
+      // Uses the derived reactive variable to ensure consistency with preview
+      const context = resumeContext;
 
       // 3. Construct Prompts
       const systemPrompt = promptTemplate.systemPrompt;
       const userPrompt = promptTemplate.userPromptTemplate
-        .replace('{{resume}}', resumeContext)
+        .replace('{{resume}}', context)
         .replace('{{jobDescription}}', jobDescription)
         .replace('{{hrName}}', hrName || 'Hiring Manager');
 
@@ -86,25 +91,47 @@
         // Let's force use of OpenRouter if available, or error if not. 
         // Or, let's direct fetch OpenAI here since we have the key in settings.
          
+         const requestPayload = {
+            model: model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ]
+         };
+
          const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${apiKey}`
             },
-            body: JSON.stringify({
-              model: model,
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-              ],
-              temperature: 0.7
-            })
+            body: JSON.stringify({ ...requestPayload, temperature: 0.7 })
           });
           
-          if (!res.ok) throw new Error("OpenAI API Error");
           const data = await res.json();
+
+          if (!res.ok) {
+            await logActivity({
+                timestamp: Date.now(),
+                provider: 'openai',
+                model: model,
+                request: requestPayload,
+                response: data,
+                status: 'error'
+            });
+            throw new Error(data.error?.message || "OpenAI API Error");
+          }
+
           rawResponse = data.choices[0].message.content;
+
+          await logActivity({
+                timestamp: Date.now(),
+                provider: 'openai',
+                model: model,
+                request: requestPayload,
+                response: data,
+                status: 'success'
+          });
       }
 
       // 5. Parse JSON
@@ -204,7 +231,7 @@
           <div class="mt-4 p-4 bg-slate-900 rounded-xl text-xs font-mono text-slate-300 space-y-2" transition:fade>
             <p class="text-slate-500 font-bold uppercase tracking-widest text-[10px]">What gets sent to AI:</p>
             <div class="whitespace-pre-wrap opacity-80">
-              {`Resume Context: ${profile.basics.firstName} ${profile.basics.lastName}, ${profile.basics.title}... [Experience & Skills]`}
+              {resumeContext}
             </div>
           </div>
         {/if}
