@@ -5,6 +5,7 @@
   import { Shield, Save, RefreshCw, Key, Info, Settings, Sparkles, Database, FileText, Layout, ArrowLeft } from 'lucide-svelte';
   import PromptSettings from '$lib/components/settings/PromptSettings.svelte';
   import { validateOpenAIAndActivate } from '../guides/openai/openai';
+  import { validateOpenRouterAndActivate, fetchOpenRouterModels, type OpenRouterModel } from '../guides/openrouter/openrouter';
 
   let settings = $state<AppSettings>({
     id: 'app',
@@ -12,13 +13,16 @@
       openai: { key: '', model: 'gpt-5.2' },
       gemini: { key: '', model: 'gemini-1.5-pro' },
       anthropic: { key: '', model: 'claude-3-5-sonnet-latest' },
-      grok: { key: '', model: 'grok-2' }
+      grok: { key: '', model: 'grok-2' },
+      openrouter: { key: '', model: 'openai/gpt-5-mini' }
     },
     activeProvider: 'openai'
   });
 
   let saving = $state(false);
   let activeTab = $state<'providers' | 'prompts' | 'activity'>('providers');
+  let openrouterModels = $state<OpenRouterModel[]>([]);
+  let loadingModels = $state(false);
 
   import ActivityLog from '$lib/components/settings/ActivityLog.svelte';
 
@@ -53,20 +57,67 @@
     await initializePrompts();
     const saved = await db.settings.get('app');
     if (saved) {
-      settings = saved;
+      // Merge saved settings with defaults to ensure all providers exist
+      settings = {
+        ...settings,
+        ...saved,
+        providers: {
+          ...settings.providers,
+          ...saved.providers
+        }
+      };
+      // Fetch OpenRouter models if key exists
+      if (saved.providers.openrouter?.key) {
+        await loadOpenRouterModels();
+      }
     }
   });
+
+  async function loadOpenRouterModels() {
+    if (!settings.providers.openrouter.key) return;
+    loadingModels = true;
+    openrouterModels = await fetchOpenRouterModels(settings.providers.openrouter.key);
+    loadingModels = false;
+  }
+
+  async function validateOpenRouterKey() {
+    const key = settings.providers.openrouter.key;
+    if (!key) return;
+    
+    // Save settings first
+    await db.settings.put($state.snapshot(settings));
+    
+    // Load models and validate
+    await loadOpenRouterModels();
+    await validateOpenRouterAndActivate(key, settings.providers.openrouter.model);
+  }
+
+  async function validateOpenAIKey() {
+    const key = settings.providers.openai.key;
+    if (!key) return;
+    
+    // Save settings first
+    await db.settings.put($state.snapshot(settings));
+    
+    // Validate
+    await validateOpenAIAndActivate(key, settings.providers.openai.model);
+  }
 
   async function saveSettings() {
     saving = true;
     try {
       await db.settings.put($state.snapshot(settings));
       
-      // If active provider is OpenAI, trigger the activation flow
+      // Trigger activation flow based on active provider
       if (settings.activeProvider === 'openai' && settings.providers.openai.key) {
         await validateOpenAIAndActivate(
           settings.providers.openai.key, 
           settings.providers.openai.model
+        );
+      } else if (settings.activeProvider === 'openrouter' && settings.providers.openrouter.key) {
+        await validateOpenRouterAndActivate(
+          settings.providers.openrouter.key,
+          settings.providers.openrouter.model
         );
       }
     } finally {
@@ -139,6 +190,7 @@
             id="openai-key"
             type="password"
             oninput={() => settings.activeProvider = 'openai'}
+            onblur={validateOpenAIKey}
             bind:value={settings.providers.openai.key}
             placeholder="sk-..."
             class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
@@ -289,6 +341,81 @@
               <option value={model.id}>{model.name}</option>
             {/each}
           </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- OpenRouter -->
+    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow md:col-span-2">
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center font-bold text-white text-xs">OR</div>
+          <div>
+            <h3 class="font-bold text-slate-800">OpenRouter</h3>
+            <p class="text-xs text-slate-400">100+ Models, One API</p>
+          </div>
+        </div>
+        <input type="radio" bind:group={settings.activeProvider} value="openrouter" class="w-5 h-5 text-purple-600" />
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label for="openrouter-key" class="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+            <span class="flex items-center gap-2"><Key size={14} /> API Key</span>
+            <a href="/guides/openrouter" class="text-xs text-purple-600 hover:underline font-medium">How to get?</a>
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="openrouter-key"
+              type="password"
+              oninput={() => settings.activeProvider = 'openrouter'}
+              onblur={validateOpenRouterKey}
+              bind:value={settings.providers.openrouter.key}
+              placeholder="sk-or-..."
+              class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            />
+            <button
+              onclick={loadOpenRouterModels}
+              disabled={!settings.providers.openrouter.key || loadingModels}
+              class="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {#if loadingModels}
+                <RefreshCw size={14} class="animate-spin" />
+              {:else}
+                <RefreshCw size={14} />
+              {/if}
+              Models
+            </button>
+          </div>
+        </div>
+        
+        <div>
+          <label for="openrouter-model" class="block text-sm font-semibold text-slate-700 mb-1.5">Model</label>
+          <select
+            id="openrouter-model"
+            bind:value={settings.providers.openrouter.model}
+            class="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+          >
+            {#if openrouterModels.length === 0}
+              <option value="openai/gpt-5-mini">openai/gpt-5-mini (default)</option>
+              <option value="openai/gpt-4.1">openai/gpt-4.1</option>
+              <option value="anthropic/claude-3.5-sonnet">anthropic/claude-3.5-sonnet</option>
+              <option value="google/gemini-2.0-flash-exp:free">google/gemini-2.0-flash-exp:free</option>
+              <option value="deepseek/deepseek-chat-v3-0324:free">deepseek/deepseek-chat-v3-0324:free</option>
+            {:else}
+              {#each openrouterModels as model}
+                <option value={model.id}>{model.name}</option>
+              {/each}
+            {/if}
+          </select>
+          <p class="mt-2 text-xs text-slate-400 flex items-start gap-1">
+            <Info size={12} class="mt-0.5 shrink-0" />
+            {#if openrouterModels.length > 0}
+              {openrouterModels.length} models available. Click "Models" to refresh.
+            {:else}
+              Enter your API key and click "Models" to load all available models.
+            {/if}
+          </p>
         </div>
       </div>
     </div>

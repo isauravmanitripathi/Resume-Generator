@@ -4,6 +4,7 @@
   import { db } from '$lib/db';
   import { promptDb } from '$lib/promptDb';
   import { generateTailoredContent } from '../../../routes/guides/openai/openai';
+  import { generateOpenRouterContent } from '../../../routes/guides/openrouter/openrouter';
 
   interface Props {
     profile: Profile | null;
@@ -51,9 +52,12 @@
     isGenerating = true;
 
     try {
-      // 1. Get Settings for model
+      // 1. Get Settings for provider and model
       const settings = await db.settings.get('app');
-      const model = settings?.providers.openai.model || 'gpt-4.1';
+      const activeProvider = settings?.activeProvider || 'openai';
+      const model = activeProvider === 'openrouter' 
+        ? settings?.providers.openrouter.model || 'openai/gpt-5-mini'
+        : settings?.providers.openai.model || 'gpt-4.1';
 
       // 2. Identify Context Content
       let contextContent = "";
@@ -90,8 +94,13 @@
         .replace('{{jobDescription}}', jobDescription)
         .replace('{{numPoints}}', numPoints.toString());
 
-      // 5. Call AI
-      const rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
+      // 5. Call AI based on active provider
+      let rawResponse: string;
+      if (activeProvider === 'openrouter') {
+        rawResponse = await generateOpenRouterContent(systemPrompt, userPrompt, model);
+      } else {
+        rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
+      }
       
       let tailoredContent = "";
       try {

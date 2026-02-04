@@ -53,7 +53,7 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
         name: 'Hello JSON Test',
         description: 'Test prompt to verify JSON response format.',
         systemPrompt: 'Return a JSON string exactly in this format: {"greetings": "hi"}',
-        userPromptTemplate: 'Return hit in JSON format.',
+        userPromptTemplate: 'Return hi in JSON format.',
         isCustom: false
     },
     'education-tailor': {
@@ -67,9 +67,11 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
 };
 
 export async function initializePrompts() {
-    const existingIds = new Set((await promptDb.prompts.toArray()).map(p => p.id));
+    const existingPrompts = await promptDb.prompts.toArray();
+    const existingIds = new Set(existingPrompts.map(p => p.id));
     const now = Date.now();
 
+    // Add missing prompts
     const missingPrompts = Object.values(DEFAULT_PROMPTS)
         .filter(p => !existingIds.has(p.id))
         .map(p => ({
@@ -79,5 +81,21 @@ export async function initializePrompts() {
 
     if (missingPrompts.length > 0) {
         await promptDb.prompts.bulkAdd(missingPrompts);
+    }
+
+    // Update non-custom prompts with latest defaults (fixes typos, updates content)
+    for (const defaultPrompt of Object.values(DEFAULT_PROMPTS)) {
+        const existing = existingPrompts.find(p => p.id === defaultPrompt.id);
+        if (existing && !existing.isCustom) {
+            // Update if content differs
+            if (existing.systemPrompt !== defaultPrompt.systemPrompt ||
+                existing.userPromptTemplate !== defaultPrompt.userPromptTemplate) {
+                await promptDb.prompts.update(defaultPrompt.id, {
+                    systemPrompt: defaultPrompt.systemPrompt,
+                    userPromptTemplate: defaultPrompt.userPromptTemplate,
+                    lastUpdated: now
+                });
+            }
+        }
     }
 }

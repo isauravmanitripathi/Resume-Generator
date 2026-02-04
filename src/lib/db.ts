@@ -125,8 +125,9 @@ export interface AppSettings {
     gemini: { key: string; model: string };
     anthropic: { key: string; model: string };
     grok: { key: string; model: string };
+    openrouter: { key: string; model: string };
   };
-  activeProvider: 'openai' | 'gemini' | 'anthropic' | 'grok';
+  activeProvider: 'openai' | 'gemini' | 'anthropic' | 'grok' | 'openrouter';
   lastActiveResumeId?: string;
 }
 
