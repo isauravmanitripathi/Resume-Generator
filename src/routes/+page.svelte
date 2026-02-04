@@ -464,7 +464,7 @@
          </div>
       </div>
 
-      <div class="min-h-full flex items-start justify-center">
+      <div class="flex items-start justify-center pb-12">
         {#if appliedProfile}
           <div class="shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-sm">
             <ResumePreview 
