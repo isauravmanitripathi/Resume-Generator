@@ -5,13 +5,9 @@
  */
 
 import type { Profile } from '$lib/db';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
+// Register fonts dynamically in functions to avoid bundle bloat
+// pdfMake imports removed to lazy load
 
-// Register fonts
-pdfMake.vfs = pdfFonts.vfs;
-
-// A4 dimensions
 const MARGIN = 40;
 
 // ============================================
@@ -895,6 +891,117 @@ export function generateResumeDocDefinition(profile: Profile, templateId: string
 export async function downloadResumePDF(profile: Profile, templateId: string = 'classic', filename?: string) {
     const docDefinition = generateResumeDocDefinition(profile, templateId);
     const pdfName = filename || `${profile.basics.firstName}_${profile.basics.lastName}_Resume.pdf`;
+
+    // Dynamic import to save bundle size
+    const pdfMakeModule = await import('pdfmake/build/pdfmake');
+    const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
+    const pdfMake = pdfMakeModule.default || pdfMakeModule;
+    const pdfFonts = pdfFontsModule.default || pdfFontsModule;
+
+    // Register fonts
+    (pdfMake as any).vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+
+    pdfMake.createPdf(docDefinition).download(pdfName);
+}
+
+/**
+ * Cover Letter Data Interface
+ */
+export interface CoverLetterData {
+    recipient_name: string;
+    company_name: string;
+    subject?: string;
+    content: string;
+}
+
+/**
+ * Generate Cover Letter PDF
+ */
+export async function generateCoverLetterPDF(profile: Profile, data: CoverLetterData, filename?: string) {
+    const content: any[] = [];
+
+    // 1. Header (Same as Resume Header logic for consistency, or simplified standard letter head)
+    // Let's use a standard professional letterhead style
+
+    content.push({
+        text: `${profile.basics.firstName} ${profile.basics.lastName}`.toUpperCase(),
+        fontSize: 24,
+        bold: true,
+        alignment: 'center',
+        margin: [0, 0, 0, 5]
+    });
+
+    const contacts = [
+        profile.basics.email,
+        profile.basics.phone,
+        profile.basics.city ? `${profile.basics.city}, ${profile.basics.state}` : ''
+    ].filter(Boolean);
+
+    content.push({
+        text: contacts.join(' | '),
+        fontSize: 9,
+        color: '#64748b',
+        alignment: 'center',
+        margin: [0, 0, 0, 20]
+    });
+
+    content.push({ canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1, lineColor: '#e2e8f0' }], margin: [0, 0, 0, 20] });
+
+    // 2. Date
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    content.push({ text: today, fontSize: 10, margin: [0, 0, 0, 15] });
+
+    // 3. Recipient
+    if (data.recipient_name) {
+        content.push({ text: data.recipient_name, fontSize: 10, bold: true, margin: [0, 0, 0, 2] });
+    }
+    if (data.company_name) {
+        content.push({ text: data.company_name, fontSize: 10, margin: [0, 0, 0, 15] });
+    }
+
+    // 4. Subject (Optional)
+    if (data.subject) {
+        content.push({ text: `RE: ${data.subject}`, fontSize: 10, bold: true, margin: [0, 0, 0, 15] });
+    }
+
+    // 5. Salutation
+    content.push({
+        text: `Dear ${data.recipient_name || 'Hiring Manager'},`,
+        fontSize: 10,
+        margin: [0, 0, 0, 10]
+    });
+
+    // 6. Body Content
+    // Handle content which might be a single string or paragraphs
+    const paragraphs = data.content.split('\n\n');
+    paragraphs.forEach(para => {
+        if (para.trim()) {
+            content.push({ text: para.trim(), fontSize: 10, lineHeight: 1.5, margin: [0, 0, 0, 10], alignment: 'justify' });
+        }
+    });
+
+    // 7. Sign-off
+    content.push({ text: 'Sincerely,', fontSize: 10, margin: [0, 20, 0, 30] });
+
+    content.push({ text: `${profile.basics.firstName} ${profile.basics.lastName}`, fontSize: 10, bold: true });
+
+    const docDefinition = {
+        pageSize: 'A4' as any,
+        pageMargins: [40, 40, 40, 40] as [number, number, number, number],
+        content,
+        defaultStyle: { font: 'Roboto' }
+    };
+
+    const pdfName = filename || `Cover_Letter_${profile.basics.lastName}.pdf`;
+
+    // Dynamic import
+    const pdfMakeModule = await import('pdfmake/build/pdfmake');
+    const pdfFontsModule = await import('pdfmake/build/vfs_fonts');
+    const pdfMake = pdfMakeModule.default || pdfMakeModule;
+    const pdfFonts = pdfFontsModule.default || pdfFontsModule;
+
+    // Register fonts
+    (pdfMake as any).vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 
     pdfMake.createPdf(docDefinition).download(pdfName);
 }

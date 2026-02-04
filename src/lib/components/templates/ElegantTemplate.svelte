@@ -49,11 +49,11 @@
     {/if}
 
     <!-- Experience -->
-    {#if profile.experience.length > 0}
+    {#if profile.experience?.length > 0}
       <section>
         <h2 class="text-center text-sm font-bold uppercase tracking-wider mb-6">Professional Experience</h2>
         <div class="space-y-6">
-          {#each profile.experience as exp}
+          {#each (profile.experience || []) as exp}
             <div class="avoid-break" style="break-inside: avoid;">
               <!-- Header Row -->
               <div class="flex justify-between items-baseline mb-1">
@@ -81,11 +81,11 @@
     {/if}
 
     <!-- Education -->
-    {#if profile.education.length > 0}
+    {#if profile.education?.length > 0}
       <section>
         <h2 class="text-center text-sm font-bold uppercase tracking-wider mb-6">Education</h2>
         <div class="space-y-6">
-          {#each profile.education as edu}
+          {#each (profile.education || []) as edu}
             <div class="avoid-break text-center" style="break-inside: avoid;">
               <h3 class="font-bold text-base text-slate-900">{edu.studyType}</h3>
               <div class="text-sm text-slate-600 mb-1">{edu.startDate} – {edu.endDate}</div>
@@ -102,11 +102,11 @@
     {/if}
 
     <!-- Skills -->
-    {#if profile.skills.length > 0}
+    {#if profile.skills?.length > 0}
       <section>
         <h2 class="text-center text-sm font-bold uppercase tracking-wider mb-6">Key Skills</h2>
         <div class="grid grid-cols-2 gap-x-12 gap-y-2 max-w-4xl mx-auto">
-          {#each profile.skills as skill}
+          {#each (profile.skills || []) as skill}
             <div class="flex items-start gap-2 text-sm text-slate-700">
               <span class="text-slate-900 font-bold">•</span>
               <span><span class="font-bold text-slate-900">{skill.name}</span>{#if skill.category}: {skill.category}{/if}</span>
@@ -119,11 +119,11 @@
     {/if}
     
     <!-- Awards / Achievements -->
-    {#if profile.achievements.length > 0}
+    {#if profile.achievements?.length > 0}
       <section>
         <h2 class="text-center text-sm font-bold uppercase tracking-wider mb-6">Professional Awards</h2>
         <ul class="space-y-2 max-w-4xl mx-auto">
-          {#each profile.achievements as ach}
+          {#each (profile.achievements || []) as ach}
             <li class="flex items-start gap-2 text-sm text-slate-700">
                <span class="text-slate-900 font-bold mt-1.5 w-1.5 h-1.5 bg-slate-900 rounded-full shrink-0"></span>
                <span>

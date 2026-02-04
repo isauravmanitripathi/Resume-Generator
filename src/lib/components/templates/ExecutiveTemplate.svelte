@@ -89,13 +89,13 @@
       {/if}
 
       <!-- Skills -->
-      {#if profile.skills.length > 0}
+      {#if profile.skills?.length > 0}
         <section>
            <h3 class="text-[#d3cbb8] text-sm font-bold uppercase border-b border-[#d3cbb8] pb-1 mb-3">
             Key Skills
           </h3>
           <div class="space-y-2">
-            {#each profile.skills as skill}
+            {#each (profile.skills || []) as skill}
               <div>
                 <p class="text-[11px] font-bold text-slate-800">{skill.name}</p>
                 <!-- Optional: Level/Category if needed layout-wise, but design shows list -->
@@ -118,7 +118,7 @@
           Professional Experience
         </h3>
         <div class="space-y-6">
-          {#each profile.experience as exp}
+          {#each (profile.experience || []) as exp}
             <div class="group">
               <div class="flex justify-between items-baseline mb-1">
                 <h4 class="text-sm font-bold text-slate-900 uppercase">{exp.role}</h4>
@@ -141,7 +141,7 @@
           Education
         </h3>
         <div class="space-y-4">
-          {#each profile.education as edu}
+          {#each (profile.education || []) as edu}
             <div>
                <div class="flex justify-between items-baseline mb-1">
                 <h4 class="text-sm font-bold text-slate-900 uppercase">{edu.studyType}</h4>

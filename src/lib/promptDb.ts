@@ -63,6 +63,14 @@ export const DEFAULT_PROMPTS: Record<string, Omit<PromptTemplate, 'lastUpdated'>
         systemPrompt: 'You are an expert resume writer. Rewrite the education details to highlight coursework, projects, or honors relevant to the job description.\nIMPORTANT: Return strictly as a JSON object: {"tailored_content": "your content here"}. succinct and impressive.',
         userPromptTemplate: 'Education Details:\n{{education}}\n\nJob Description:\n{{jobDescription}}\n\nRewrite to emphasize relevance. Return ONLY the JSON object.',
         isCustom: false
+    },
+    'cover-letter-gen': {
+        id: 'cover-letter-gen',
+        name: 'Cover Letter Generator',
+        description: 'Generates a tailored cover letter based on resume and job description.',
+        systemPrompt: 'You are an expert career coach. Write a professional, persuasive cover letter tailored to the job description using the candidate\'s resume.\nIMPORTANT: Return your response strictly as a JSON object with this structure:\n{\n  "recipient_name": "Hiring Manager Name (or Hiring Team)",\n  "company_name": "Company Name (inferred from JD if possible)",\n  "subject": "Cover Letter for [Role Name]",\n  "content": "The body of the letter..."\n}\nDo not include the header or date in the content, just the body text paragraphs.',
+        userPromptTemplate: 'Resume:\n{{resume}}\n\nJob Description:\n{{jobDescription}}\n\nHiring Manager Name: {{hrName}}\n\nWrite a compelling cover letter. Return ONLY the JSON object.',
+        isCustom: false
     }
 };
 

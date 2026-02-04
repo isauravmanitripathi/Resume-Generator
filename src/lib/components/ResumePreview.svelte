@@ -5,9 +5,10 @@
   import CreativeStudio from './creative/CreativeStudio.svelte';
   import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
   import ElegantTemplate from './templates/ElegantTemplate.svelte';
+  import CoverLetterModal from './architect/CoverLetterModal.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
-    Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2
+    Smartphone, Mail, Linkedin, Github, Globe, Download, Printer, Loader2, Sparkles
   } from 'lucide-svelte';
 
   interface Props {
@@ -18,6 +19,7 @@
 
   let { profile, templateId, customCode } = $props<Props>();
   let isDownloading = $state(false);
+  let showCoverLetter = $state(false);
 
   async function handleDownload() {
     if (isDownloading) return;
@@ -34,7 +36,17 @@
   }
 </script>
 
-<div class="fixed bottom-8 right-24 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
+<div class="fixed bottom-8 right-24 z-50 print:hidden animate-fade-in flex flex-row items-center gap-3" data-html2canvas-ignore="true">
+  <!-- Cover Letter Button -->
+  <button 
+    onclick={() => showCoverLetter = true}
+    class="flex items-center gap-2 px-5 py-3 bg-white text-slate-700 border border-slate-200 rounded-full font-bold shadow-xl shadow-slate-200/50 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 hover:scale-105 transition-all text-xs"
+  >
+    <Sparkles size={14} />
+    <span>Cover Letter</span>
+  </button>
+
+  <!-- Download PDF Button -->
   <button 
     onclick={handleDownload}
     disabled={isDownloading}
@@ -49,6 +61,13 @@
     {/if}
   </button>
 </div>
+
+{#if showCoverLetter}
+  <CoverLetterModal 
+    {profile} 
+    onClose={() => showCoverLetter = false} 
+  />
+{/if}
 
 <!-- Print Styles (Native Fallback) -->
 <svelte:head>
