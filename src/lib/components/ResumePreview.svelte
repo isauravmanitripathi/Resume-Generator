@@ -23,7 +23,7 @@
     isDownloading = true;
     
     try {
-      await downloadResumePDF(profile);
+      await downloadResumePDF(profile, templateId);
     } catch (e) {
       console.error('PDF Generation Error:', e);
       alert('PDF generation failed: ' + (e as Error).message);
