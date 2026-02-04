@@ -34,7 +34,7 @@
   }
 </script>
 
-<div class="fixed bottom-8 right-8 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
+<div class="fixed bottom-8 right-24 z-50 print:hidden animate-fade-in flex flex-col gap-2" data-html2canvas-ignore="true">
   <button 
     onclick={handleDownload}
     disabled={isDownloading}
