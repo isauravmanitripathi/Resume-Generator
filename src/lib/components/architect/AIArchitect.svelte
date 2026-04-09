@@ -20,6 +20,7 @@
   let selectedId = $state<string | null>(null);
   let numPoints = $state(4);
   let numSkills = $state(10);
+  let yearsOfExperience = $state('');
 
   // Derive the options based on profile (only for types that need a dropdown)
   let options = $derived(() => {
@@ -66,7 +67,21 @@
       let promptId = "resume-tailor";
 
       if (selectedType === 'summary') {
-        contextContent = profile.basics.summary;
+        const src = resolvedProfile || profile;
+        const expContext = src.experience
+          .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
+          .join('\n\n');
+        const skillsList = src.skills.map(s => s.name).filter(Boolean).join(', ');
+        const projContext = src.projects
+          .map(p => `${p.name}:\n${p.raw_context || ''}`)
+          .filter(p => p.trim().length > 0)
+          .join('\n\n');
+        contextContent = [
+          `Years of Experience: ${yearsOfExperience || 'Not specified'}`,
+          `\nExperience:\n${expContext}`,
+          skillsList ? `\nSkills: ${skillsList}` : '',
+          projContext ? `\nProjects:\n${projContext}` : ''
+        ].join('\n');
         promptId = "summary-gen";
       } else if (selectedType === 'experience') {
         const item = profile.experience.find(e => e.id === selectedId);
@@ -199,11 +214,24 @@
     </div>
 
     {#if selectedType === 'summary'}
-      <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-        <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-          <User size={12} />
+      <div class="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-start gap-3">
+          <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg shrink-0 mt-0.5">
+            <User size={12} />
+          </div>
+          <p class="text-[10px] font-bold text-blue-700 leading-relaxed">Reads your tailored experience, skills & projects to craft a Harvard-style summary</p>
         </div>
-        <p class="text-[10px] font-bold text-blue-700">Optimization focused on your Professional Summary</p>
+        <div class="space-y-1.5">
+          <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Years of Experience</label>
+          <input
+            type="number"
+            min="0"
+            max="50"
+            placeholder="e.g. 3"
+            bind:value={yearsOfExperience}
+            class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all"
+          />
+        </div>
       </div>
 
     {:else if selectedType === 'skills'}

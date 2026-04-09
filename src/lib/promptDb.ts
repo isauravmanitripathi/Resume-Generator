@@ -96,7 +96,7 @@ YOU MUST FOLLOW THIS EXACT STEP-BY-STEP PROCESS:
 Return STRICTLY as a valid JSON object and nothing else:
 {"tailored_content": "The full professional summary text here as clean paragraphs with proper line breaks if needed"}
 No explanations, no extra text, no markdown, no quotes around the summary.`,
-        userPromptTemplate: 'Profile Data:\n{{profileSummary}}\n\nJob Description:\n{{jobDescription}}\n\nGenerate a compelling Harvard-style professional summary. Return ONLY the JSON object.',
+        userPromptTemplate: 'Candidate Profile:\n{{profileSummary}}\n\nJob Description:\n{{jobDescription}}\n\nGenerate a compelling Harvard-style professional summary using the years of experience, tailored experience bullets, skills, and projects provided above. Return ONLY the JSON object.',
         isCustom: false
     },
     'skill-extract': {
