@@ -79,11 +79,20 @@
       raw_context: tailored.education[edu.id] || edu.raw_context
     }));
 
-    // Apply tailored Skills
-    merged.skills = merged.skills.map(skill => ({
-      ...skill,
-      name: tailored.skills[skill.id] || skill.name
-    }));
+    // Apply tailored Skills — use AI-generated list if available, else fall back to vault skills
+    if (tailored.generatedSkills && tailored.generatedSkills.length > 0) {
+      merged.skills = tailored.generatedSkills.map((name: string, i: number) => ({
+        id: `gen-${i}`,
+        name,
+        level: '',
+        category: ''
+      }));
+    } else {
+      merged.skills = merged.skills.map(skill => ({
+        ...skill,
+        name: tailored.skills[skill.id] || skill.name
+      }));
+    }
 
     // Apply tailored Projects
     if (tailored.projects) {
@@ -241,8 +250,13 @@
       resume.tailoredContent.experience[tailored.id] = tailored.content;
     } else if (tailored.type === 'education' && tailored.id) {
       resume.tailoredContent.education[tailored.id] = tailored.content;
-    } else if (tailored.type === 'skills' && tailored.id) {
-      resume.tailoredContent.skills[tailored.id] = tailored.content;
+    } else if (tailored.type === 'skills') {
+      // Generated skills list — comma-separated string from AI
+      const skillNames = tailored.content
+        .split(',')
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0);
+      resume.tailoredContent.generatedSkills = skillNames;
     } else if (tailored.type === 'projects' && tailored.id) {
       if (!resume.tailoredContent.projects) resume.tailoredContent.projects = {};
       resume.tailoredContent.projects[tailored.id] = tailored.content;
@@ -432,11 +446,12 @@
 
       <div class="flex-1 overflow-y-auto p-6 scrollbar-hide">
         {#if activeSubTab === 'ai'}
-          <AIArchitect 
+          <AIArchitect
             {profile}
-            bind:jobDescription 
-            isGenerating={isGenerating} 
-            onGenerate={handleGenerate} 
+            resolvedProfile={appliedProfile}
+            bind:jobDescription
+            isGenerating={isGenerating}
+            onGenerate={handleGenerate}
           />
 
         {:else if activeSubTab === 'info'}

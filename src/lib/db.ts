@@ -103,6 +103,7 @@ export interface ResumeVersion {
     education: Record<string, string>; // EducationId -> TailoredContent
     skills: Record<string, string>; // SkillId -> TailoredContent
     projects: Record<string, string>; // ProjectId -> TailoredContent
+    generatedSkills?: string[]; // AI-generated skill names from full analysis
   };
   canvas?: CanvasItem[];
   meta?: any;

@@ -8,18 +8,20 @@
 
   interface Props {
     profile: Profile | null;
+    resolvedProfile: Profile | null;
     jobDescription: string;
     isGenerating: boolean;
     onGenerate: (result: { type: string, id: string | null, content: string }) => void;
   }
 
-  let { profile, jobDescription = $bindable(), isGenerating = $bindable(), onGenerate } = $props<Props>();
+  let { profile, resolvedProfile, jobDescription = $bindable(), isGenerating = $bindable(), onGenerate } = $props<Props>();
 
   let selectedType = $state<'summary' | 'experience' | 'education' | 'skills' | 'projects'>('summary');
   let selectedId = $state<string | null>(null);
-  let numPoints = $state(4); // Default bullet points
+  let numPoints = $state(4);
+  let numSkills = $state(10);
 
-  // Derive the options based on profile
+  // Derive the options based on profile (only for types that need a dropdown)
   let options = $derived(() => {
     if (!profile) return [];
     if (selectedType === 'experience') {
@@ -27,9 +29,6 @@
     }
     if (selectedType === 'education') {
       return profile.education.map(e => ({ id: e.id, name: e.institution, label: e.area }));
-    }
-    if (selectedType === 'skills') {
-      return profile.skills.map(s => ({ id: s.id, name: s.name, label: s.category }));
     }
     if (selectedType === 'projects') {
       return profile.projects.map(p => ({ id: p.id, name: p.name, label: 'Project' }));
@@ -39,7 +38,7 @@
 
   // Reset selectedId when type changes
   $effect(() => {
-    if (selectedType !== 'summary') {
+    if (selectedType !== 'summary' && selectedType !== 'skills') {
       const opts = options();
       if (opts.length > 0 && !selectedId) {
         selectedId = opts[0].id;
@@ -74,12 +73,18 @@
         contextContent = item ? `${item.role} at ${item.company}: ${item.raw_context || ''}` : "";
       } else if (selectedType === 'education') {
         const item = profile.education.find(e => e.id === selectedId);
-        // Include the new raw_context description
         contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}. Details: ${item.raw_context || ''}` : "";
         promptId = "education-tailor";
       } else if (selectedType === 'skills') {
-        const item = profile.skills.find(s => s.id === selectedId);
-        contextContent = item ? `${item.name} (${item.category})` : "";
+        const src = resolvedProfile || profile;
+        const expContext = src.experience
+          .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
+          .join('\n\n');
+        const projContext = src.projects
+          .map(p => `${p.name}:\n${p.raw_context || ''}`)
+          .join('\n\n');
+        contextContent = `Experience:\n${expContext}\n\nProjects:\n${projContext}`;
+        promptId = "skill-gen";
       } else if (selectedType === 'projects') {
         const item = profile.projects.find(p => p.id === selectedId);
         contextContent = item ? `${item.name}: ${item.description}. ${item.raw_context || ''}` : "";
@@ -92,15 +97,18 @@
 
       // 4. Wrap with JSON instruction
       const systemPrompt = template.systemPrompt
-         .replace('{{numPoints}}', numPoints.toString()) + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
-       
+         .replace('{{numPoints}}', numPoints.toString())
+         .replace('{{numSkills}}', numSkills.toString()) + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
+
        const userPrompt = template.userPromptTemplate
         .replace('{{experience}}', contextContent)
         .replace('{{education}}', contextContent)
         .replace('{{project}}', contextContent)
+        .replace('{{context}}', contextContent)
         .replace('{{profileSummary}}', contextContent)
         .replace('{{jobDescription}}', jobDescription)
-        .replace('{{numPoints}}', numPoints.toString());
+        .replace('{{numPoints}}', numPoints.toString())
+        .replace('{{numSkills}}', numSkills.toString());
 
       // 5. Call AI based on active provider
       let rawResponse: string;
@@ -190,9 +198,45 @@
       </button>
     </div>
 
-    {#if selectedType !== 'summary'}
+    {#if selectedType === 'summary'}
+      <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
+          <User size={12} />
+        </div>
+        <p class="text-[10px] font-bold text-blue-700">Optimization focused on your Professional Summary</p>
+      </div>
+
+    {:else if selectedType === 'skills'}
+      <div class="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-2xl flex items-start gap-3">
+          <div class="p-1.5 bg-rose-100 text-rose-600 rounded-lg shrink-0 mt-0.5">
+            <FolderGit2 size={12} />
+          </div>
+          <p class="text-[10px] font-bold text-rose-700 leading-relaxed">Analyzes your tailored experience & projects alongside the job description to generate the most relevant skills</p>
+        </div>
+        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Number of Skills</span>
+            <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{numSkills} Skills</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="text-[10px] font-bold text-slate-400">Few</span>
+            <input
+              type="range"
+              min="5"
+              max="20"
+              step="1"
+              bind:value={numSkills}
+              class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-rose-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+            />
+            <span class="text-[10px] font-bold text-slate-400">Many</span>
+          </div>
+        </div>
+      </div>
+
+    {:else}
       <div class="relative animate-in fade-in slide-in-from-top-2 duration-300">
-        <select 
+        <select
           bind:value={selectedId}
           class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none appearance-none focus:ring-2 focus:ring-blue-500/20 transition-all"
         >
@@ -205,36 +249,27 @@
         </div>
       </div>
 
-      
       <!-- Bullet count config for experience and projects -->
       {#if selectedType === 'experience' || selectedType === 'projects'}
-       <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
-         <div class="flex items-center justify-between mb-2">
+        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
+          <div class="flex items-center justify-between mb-2">
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Output Configuration</span>
             <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{numPoints} Bullets</span>
-         </div>
-         <div class="flex items-center gap-3">
+          </div>
+          <div class="flex items-center gap-3">
             <span class="text-[10px] font-bold text-slate-400">Short</span>
-            <input 
-              type="range" 
-              min="3" 
-              max="8" 
-              step="1" 
+            <input
+              type="range"
+              min="3"
+              max="8"
+              step="1"
               bind:value={numPoints}
               class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
             />
             <span class="text-[10px] font-bold text-slate-400">Detailed</span>
-         </div>
-       </div>
-      {/if}
-
-    {:else}
-      <div class="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-        <div class="p-1.5 bg-blue-100 text-blue-600 rounded-lg">
-          <User size={12} />
+          </div>
         </div>
-        <p class="text-[10px] font-bold text-blue-700">Optimization focused on your Professional Summary</p>
-      </div>
+      {/if}
     {/if}
   </div>
 

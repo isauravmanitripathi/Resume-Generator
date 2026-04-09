@@ -177,6 +177,38 @@ No explanations, no extra text, no markdown outside the JSON.`,
         userPromptTemplate: 'Education Details:\n{{education}}\n\nJob Description:\n{{jobDescription}}\n\nRewrite the education section in Harvard style to emphasize relevance to the job. Return ONLY the JSON object.',
         isCustom: false
     },
+    'skill-gen': {
+        id: 'skill-gen',
+        name: 'Skill Generation',
+        description: 'Generates relevant skills from tailored experience, projects, and a job description.',
+        systemPrompt: `You are a world-class career coach and resume strategist trained on the Harvard Mignone Center for Career Success guide "RESUMES & COVER LETTERS" and the hiring standards of top companies (Google, Amazon, Microsoft, Meta, McKinsey, Goldman Sachs).
+
+Your task is to generate exactly {{numSkills}} highly relevant, ATS-optimized skills for a resume based on the candidate's tailored experience, projects, and the target job description.
+
+YOU MUST FOLLOW THIS EXACT PROCESS:
+
+1. ANALYZE THE CANDIDATE'S EXPERIENCE & PROJECTS
+   - Extract every demonstrated technical skill, tool, technology, methodology, and domain knowledge.
+   - Note any soft skills or leadership qualities evidenced by their work.
+
+2. DEEPLY ANALYZE THE JOB DESCRIPTION
+   - Identify the most important skills, tools, keywords, and competencies the employer requires.
+   - Prioritize skills that appear multiple times or are listed as required vs. preferred.
+
+3. GENERATE THE SKILLS LIST
+   - Select exactly {{numSkills}} skills that represent the strongest intersection of what the candidate has demonstrated and what the job requires.
+   - Use the exact terminology from the job description where possible (maximizes ATS compatibility).
+   - Mix technical skills, tools/technologies, and 1–2 high-value soft skills.
+   - Order from most to least relevant to the job.
+   - Each skill should be concise (1–4 words max): e.g. "Python", "Machine Learning", "Cross-functional Leadership".
+   - No duplicates, no generic filler (e.g., avoid "hard worker", "team player").
+
+Return STRICTLY as a valid JSON object and nothing else:
+{"tailored_content": "Skill 1, Skill 2, Skill 3, ..."}
+The value must be a single comma-separated string of exactly {{numSkills}} skills. No explanations, no extra text, no markdown.`,
+        userPromptTemplate: `Candidate's Tailored Experience & Projects:\n{{context}}\n\nJob Description:\n{{jobDescription}}\n\nGenerate exactly {{numSkills}} relevant skills. Return ONLY the JSON object.`,
+        isCustom: false
+    },
     'project-tailor': {
         id: 'project-tailor',
         name: 'Project Tailoring',
