@@ -102,6 +102,7 @@ export interface ResumeVersion {
     experience: Record<string, string>; // ExperienceId -> TailoredContent
     education: Record<string, string>; // EducationId -> TailoredContent
     skills: Record<string, string>; // SkillId -> TailoredContent
+    projects: Record<string, string>; // ProjectId -> TailoredContent
   };
   canvas?: CanvasItem[];
   meta?: any;

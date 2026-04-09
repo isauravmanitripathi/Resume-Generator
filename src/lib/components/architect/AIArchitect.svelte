@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Sparkles, User, Briefcase, GraduationCap, Hammer, ChevronDown, Loader2 } from 'lucide-svelte';
+  import { Sparkles, User, Briefcase, GraduationCap, Hammer, FolderGit2, ChevronDown, Loader2 } from 'lucide-svelte';
   import type { Profile } from '$lib/db';
   import { db } from '$lib/db';
   import { promptDb } from '$lib/promptDb';
@@ -15,7 +15,7 @@
 
   let { profile, jobDescription = $bindable(), isGenerating = $bindable(), onGenerate } = $props<Props>();
 
-  let selectedType = $state<'summary' | 'experience' | 'education' | 'skills'>('summary');
+  let selectedType = $state<'summary' | 'experience' | 'education' | 'skills' | 'projects'>('summary');
   let selectedId = $state<string | null>(null);
   let numPoints = $state(4); // Default bullet points
 
@@ -30,6 +30,9 @@
     }
     if (selectedType === 'skills') {
       return profile.skills.map(s => ({ id: s.id, name: s.name, label: s.category }));
+    }
+    if (selectedType === 'projects') {
+      return profile.projects.map(p => ({ id: p.id, name: p.name, label: 'Project' }));
     }
     return [];
   });
@@ -77,6 +80,10 @@
       } else if (selectedType === 'skills') {
         const item = profile.skills.find(s => s.id === selectedId);
         contextContent = item ? `${item.name} (${item.category})` : "";
+      } else if (selectedType === 'projects') {
+        const item = profile.projects.find(p => p.id === selectedId);
+        contextContent = item ? `${item.name}: ${item.description}. ${item.raw_context || ''}` : "";
+        promptId = "project-tailor";
       }
 
       // 3. Get the Prompt
@@ -89,7 +96,8 @@
        
        const userPrompt = template.userPromptTemplate
         .replace('{{experience}}', contextContent)
-        .replace('{{education}}', contextContent) // Injected here
+        .replace('{{education}}', contextContent)
+        .replace('{{project}}', contextContent)
         .replace('{{profileSummary}}', contextContent)
         .replace('{{jobDescription}}', jobDescription)
         .replace('{{numPoints}}', numPoints.toString());
@@ -139,7 +147,7 @@
   <div class="space-y-3">
     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Focus Area</label>
     
-    <div class="grid grid-cols-4 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+    <div class="grid grid-cols-5 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
       <button 
         onclick={() => selectedType = 'summary'}
         class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
@@ -164,13 +172,21 @@
         <GraduationCap size={14} />
         <span class="text-[9px] font-black uppercase tracking-tighter mt-1">Edu</span>
       </button>
-      <button 
+      <button
         onclick={() => selectedType = 'skills'}
         class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
         {selectedType === 'skills' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
       >
         <Hammer size={14} />
         <span class="text-[9px] font-black uppercase tracking-tighter mt-1">Skills</span>
+      </button>
+      <button
+        onclick={() => selectedType = 'projects'}
+        class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
+        {selectedType === 'projects' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
+      >
+        <FolderGit2 size={14} />
+        <span class="text-[9px] font-black uppercase tracking-tighter mt-1">Proj</span>
       </button>
     </div>
 
@@ -190,8 +206,8 @@
       </div>
 
       
-      <!-- Experience Specific Configuration -->
-      {#if selectedType === 'experience'}
+      <!-- Bullet count config for experience and projects -->
+      {#if selectedType === 'experience' || selectedType === 'projects'}
        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300 mt-2">
          <div class="flex items-center justify-between mb-2">
             <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Output Configuration</span>

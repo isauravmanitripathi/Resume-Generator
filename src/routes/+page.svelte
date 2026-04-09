@@ -85,6 +85,14 @@
       name: tailored.skills[skill.id] || skill.name
     }));
 
+    // Apply tailored Projects
+    if (tailored.projects) {
+      merged.projects = merged.projects.map(proj => ({
+        ...proj,
+        raw_context: tailored.projects[proj.id] || proj.raw_context
+      }));
+    }
+
     return merged;
   });
 
@@ -210,7 +218,8 @@
           tailoredContent: {
             experience: {},
             education: {},
-            skills: {}
+            skills: {},
+            projects: {}
           }
         };
         await db.resumes.add(newResume);
@@ -234,6 +243,9 @@
       resume.tailoredContent.education[tailored.id] = tailored.content;
     } else if (tailored.type === 'skills' && tailored.id) {
       resume.tailoredContent.skills[tailored.id] = tailored.content;
+    } else if (tailored.type === 'projects' && tailored.id) {
+      if (!resume.tailoredContent.projects) resume.tailoredContent.projects = {};
+      resume.tailoredContent.projects[tailored.id] = tailored.content;
     }
 
     await db.resumes.update(activeResumeId, { tailoredContent: resume.tailoredContent });
