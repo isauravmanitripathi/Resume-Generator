@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { db, type Profile, type ExperienceItem, type EducationItem, type SkillItem, type AchievementItem, type PublicationItem } from '$lib/db';
-  import { 
-    User, MapPin, Briefcase, GraduationCap, Award, BookOpen, 
+  import { db, type Profile, type ExperienceItem, type EducationItem, type SkillItem, type AchievementItem, type PublicationItem, type ProjectItem } from '$lib/db';
+  import {
+    User, MapPin, Briefcase, GraduationCap, Award, BookOpen, FolderGit2,
     Linkedin, Github, Twitter, Youtube, Instagram, Globe,
     Plus, Trash2, Smartphone, Mail, Hash, Save, CheckCircle
   } from 'lucide-svelte';
@@ -74,6 +74,11 @@
     save();
   }
 
+  function addProject() {
+    profile.projects = [...profile.projects, { id: uuidv4(), name: '', description: '', url: '', raw_context: '' }];
+    save();
+  }
+
   // Helper to remove items
   function remove(arrayName: keyof Profile, id: string) {
     if (Array.isArray(profile[arrayName])) {
@@ -111,6 +116,7 @@
     { id: 'experience', label: 'Experience', icon: Briefcase },
     { id: 'education', label: 'Education', icon: GraduationCap },
     { id: 'skills', label: 'Skills', icon: Award },
+    { id: 'projects', label: 'Projects', icon: FolderGit2 },
     { id: 'extras', label: 'Extras', icon: BookOpen },
   ];
 </script>
@@ -375,6 +381,46 @@
                 </div>
               {/each}
             </div>
+          </div>
+
+        {:else if activeTab === 'projects'}
+          <div class="space-y-6 animate-fade-in">
+            <div class="flex items-center justify-between">
+              <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <FolderGit2 size={20} class="text-blue-600" /> Projects
+              </h2>
+              <button onclick={addProject} class="btn-add">
+                <Plus size={16} /> Add Project
+              </button>
+            </div>
+
+            {#each profile.projects as proj (proj.id)}
+              <div class="p-6 border border-slate-100 bg-slate-50/30 rounded-2xl relative group">
+                <button onclick={() => remove('projects', proj.id)} class="absolute right-3 top-3 p-2 text-slate-300 hover:text-red-500 hover:bg-white rounded-lg transition-all shadow-sm md:opacity-0 group-hover:opacity-100">
+                  <Trash2 size={18} />
+                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input bind:value={proj.name} oninput={save} class="input-field bg-white" placeholder="Project Name" />
+                  <input bind:value={proj.url} oninput={save} class="input-field bg-white" placeholder="URL / Repository Link (optional)" />
+                </div>
+                <div class="mt-4">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Short Description</label>
+                  <input bind:value={proj.description} oninput={save} class="input-field bg-white" placeholder="One-line description of the project" />
+                </div>
+                <div class="mt-4">
+                  <label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Context Blob (Details for AI)</label>
+                  <textarea bind:value={proj.raw_context} oninput={save} class="input-field bg-white min-h-[100px]" placeholder="Describe what you built, the tech stack, your role, impact..."></textarea>
+                </div>
+              </div>
+            {/each}
+
+            {#if profile.projects.length === 0}
+              <div class="text-center py-12 text-slate-400">
+                <FolderGit2 size={40} class="mx-auto mb-3 text-slate-200" />
+                <p class="text-sm font-medium">No projects yet</p>
+                <p class="text-xs mt-1">Add your side projects, open source work, or portfolio pieces.</p>
+              </div>
+            {/if}
           </div>
 
         {:else if activeTab === 'extras'}
