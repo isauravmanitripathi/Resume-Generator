@@ -6,6 +6,7 @@
   import ExecutiveTemplate from './templates/ExecutiveTemplate.svelte';
   import ElegantTemplate from './templates/ElegantTemplate.svelte';
   import CupertinoTemplate from './templates/CupertinoTemplate.svelte';
+  import HarperTemplate from './templates/HarperTemplate.svelte';
   import CoverLetterModal from './architect/CoverLetterModal.svelte';
   import { 
     Briefcase, GraduationCap, Award, MapPin, 
@@ -425,6 +426,8 @@
       <ElegantTemplate {profile} />
     {:else if templateId === 'cupertino'}
       <CupertinoTemplate {profile} />
+    {:else if templateId === 'harper'}
+      <HarperTemplate {profile} />
   {/if}
   </div>
 {/if}
