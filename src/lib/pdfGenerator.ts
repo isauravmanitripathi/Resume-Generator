@@ -1097,6 +1097,229 @@ function generateCupertinoPDF(profile: Profile) {
 }
 
 // ============================================
+// HARPER TEMPLATE
+// ============================================
+const HARPER_COLORS = {
+    black:     '#111111',
+    dark:      '#333333',
+    mid:       '#555555',
+    muted:     '#777777',
+    light:     '#aaaaaa',
+    rule:      '#bbbbbb',
+};
+
+function harperSectionHeader(title: string): any[] {
+    return [
+        {
+            text: title.toUpperCase(),
+            fontSize: 8,
+            bold: true,
+            color: HARPER_COLORS.black,
+            characterSpacing: 1.5,
+            margin: [0, 14, 0, 3]
+        },
+        {
+            canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 0.5, lineColor: HARPER_COLORS.rule }],
+            margin: [0, 0, 0, 8]
+        }
+    ];
+}
+
+function generateHarperPDF(profile: Profile) {
+    const content: any[] = [];
+
+    // ── Header ──────────────────────────────────────────────────────────
+    const rightContactParts: any[] = [];
+    if (profile.basics.email)    rightContactParts.push({ text: profile.basics.email + '\n' });
+    if (profile.basics.phone)    rightContactParts.push({ text: profile.basics.phone + '\n' });
+    if (profile.basics.city)     rightContactParts.push({ text: `${profile.basics.city}${profile.basics.state ? ', ' + profile.basics.state : ''}` + '\n' });
+    if (profile.socials.linkedin) rightContactParts.push({ text: profile.socials.linkedin.replace('https://www.', '').replace('https://', '') + '\n' });
+    if (profile.socials.github)  rightContactParts.push({ text: profile.socials.github.replace('https://', '') + '\n' });
+    if (profile.socials.website) rightContactParts.push({ text: profile.socials.website.replace('https://', '') + '\n' });
+
+    content.push({
+        columns: [
+            {
+                stack: [
+                    {
+                        text: `${profile.basics.firstName} ${profile.basics.lastName}`,
+                        fontSize: 24,
+                        bold: true,
+                        color: HARPER_COLORS.black,
+                        margin: [0, 0, 0, profile.basics.title ? 3 : 0]
+                    },
+                    profile.basics.title ? {
+                        text: profile.basics.title,
+                        fontSize: 10,
+                        italics: true,
+                        color: HARPER_COLORS.mid,
+                        margin: [0, 0, 0, 0]
+                    } : {}
+                ],
+                width: '*'
+            },
+            {
+                text: rightContactParts,
+                fontSize: 8.5,
+                color: HARPER_COLORS.mid,
+                alignment: 'right',
+                lineHeight: 1.55,
+                width: 'auto'
+            }
+        ],
+        margin: [0, 0, 0, 6]
+    });
+
+    // Thick rule under header
+    content.push({
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1.5, lineColor: HARPER_COLORS.black }],
+        margin: [0, 0, 0, 0]
+    });
+
+    // ── Personal Summary ─────────────────────────────────────────────────
+    if (profile.basics.summary) {
+        content.push(...harperSectionHeader('Personal Summary'));
+        content.push({
+            text: profile.basics.summary,
+            fontSize: 10,
+            color: HARPER_COLORS.dark,
+            lineHeight: 1.55,
+            alignment: 'justify',
+            margin: [0, 0, 0, 0]
+        });
+    }
+
+    // ── Education ────────────────────────────────────────────────────────
+    if (profile.education.length > 0) {
+        content.push(...harperSectionHeader('Education'));
+        profile.education.forEach((edu, i) => {
+            content.push({
+                columns: [
+                    {
+                        stack: [
+                            { text: edu.institution, fontSize: 10.5, bold: true, color: HARPER_COLORS.black },
+                            { text: `${edu.studyType}${edu.area ? ' in ' + edu.area : ''}`, fontSize: 9.5, italics: true, color: HARPER_COLORS.mid, margin: [0, 1, 0, 0] },
+                            edu.raw_context ? { text: edu.raw_context, fontSize: 9, color: HARPER_COLORS.mid, margin: [0, 3, 0, 0], lineHeight: 1.4 } : {}
+                        ],
+                        width: '*'
+                    },
+                    {
+                        stack: [
+                            { text: `${edu.startDate} – ${edu.endDate}`, fontSize: 9, color: HARPER_COLORS.muted, alignment: 'right' },
+                            edu.location ? { text: edu.location, fontSize: 9, color: HARPER_COLORS.muted, alignment: 'right', margin: [0, 1, 0, 0] } : {}
+                        ],
+                        width: 'auto'
+                    }
+                ],
+                margin: [0, 0, 0, i < profile.education.length - 1 ? 8 : 0]
+            });
+        });
+    }
+
+    // ── Work Experience ──────────────────────────────────────────────────
+    if (profile.experience.length > 0) {
+        content.push(...harperSectionHeader('Work Experience'));
+        profile.experience.forEach((exp, i) => {
+            content.push({
+                columns: [
+                    {
+                        text: [
+                            { text: exp.role, fontSize: 10.5, bold: true, color: HARPER_COLORS.black },
+                            { text: '  —  ', fontSize: 10, color: HARPER_COLORS.light },
+                            { text: exp.company, fontSize: 10, italics: true, color: HARPER_COLORS.dark }
+                        ],
+                        width: '*'
+                    },
+                    {
+                        text: `${exp.location ? exp.location + '  |  ' : ''}${exp.startDate} – ${exp.current ? 'Present' : exp.endDate}`,
+                        fontSize: 9,
+                        color: HARPER_COLORS.muted,
+                        alignment: 'right',
+                        width: 'auto'
+                    }
+                ],
+                margin: [0, 0, 0, 3]
+            });
+
+            if (exp.raw_context) {
+                const bullets = exp.raw_context.split('\n').filter(l => l.trim()).map(l => ({
+                    text: l.replace(/^[•\-]\s*/, ''),
+                    fontSize: 9.5,
+                    color: HARPER_COLORS.dark,
+                    lineHeight: 1.4,
+                    margin: [0, 1, 0, 1]
+                }));
+                content.push({
+                    ul: bullets,
+                    margin: [12, 0, 0, i < profile.experience.length - 1 ? 10 : 0],
+                    color: HARPER_COLORS.dark
+                });
+            } else {
+                content.push({ text: '', margin: [0, 0, 0, i < profile.experience.length - 1 ? 10 : 0] });
+            }
+        });
+    }
+
+    // ── Projects ─────────────────────────────────────────────────────────
+    if (profile.projects && profile.projects.length > 0) {
+        content.push(...harperSectionHeader('Projects'));
+        profile.projects.forEach((proj, i) => {
+            const nameCell: any = {
+                text: [
+                    { text: proj.name, fontSize: 10.5, bold: true, color: HARPER_COLORS.black }
+                ]
+            };
+            if (proj.url) {
+                nameCell.text.push(
+                    { text: '  |  ', fontSize: 10, color: HARPER_COLORS.light },
+                    { text: proj.url.replace('https://', ''), fontSize: 9, color: HARPER_COLORS.muted, link: proj.url }
+                );
+            }
+            content.push({ ...nameCell, margin: [0, 0, 0, 3] });
+
+            const bulletSource = proj.raw_context || proj.description;
+            if (bulletSource) {
+                const lines = proj.raw_context
+                    ? proj.raw_context.split('\n').filter(l => l.trim())
+                    : [proj.description];
+                const bullets = lines.map(l => ({
+                    text: l.replace(/^[•\-]\s*/, ''),
+                    fontSize: 9.5,
+                    color: HARPER_COLORS.dark,
+                    lineHeight: 1.4,
+                    margin: [0, 1, 0, 1]
+                }));
+                content.push({
+                    ul: bullets,
+                    margin: [12, 0, 0, i < profile.projects.length - 1 ? 10 : 0],
+                    color: HARPER_COLORS.dark
+                });
+            } else {
+                content.push({ text: '', margin: [0, 0, 0, i < profile.projects.length - 1 ? 10 : 0] });
+            }
+        });
+    }
+
+    // ── Skills & Technologies ────────────────────────────────────────────
+    if (profile.skills.length > 0) {
+        content.push(...harperSectionHeader('Skills & Technologies'));
+        content.push({
+            text: profile.skills.map(s => s.name).join('  •  '),
+            fontSize: 9.5,
+            color: HARPER_COLORS.dark,
+            lineHeight: 1.6
+        });
+    }
+
+    return {
+        pageSize: 'A4' as any,
+        pageMargins: [40, 40, 40, 40] as [number, number, number, number],
+        content,
+        defaultStyle: { font: 'Roboto' }
+    };
+}
+
+// ============================================
 // MAIN EXPORT (Existing)
 // ============================================
 
@@ -1115,6 +1338,8 @@ export function generateResumeDocDefinition(profile: Profile, templateId: string
             return generateElegantPDF(profile);
         case 'cupertino':
             return generateCupertinoPDF(profile);
+        case 'harper':
+            return generateHarperPDF(profile);
         case 'classic':
         default:
             return generateClassicPDF(profile);
