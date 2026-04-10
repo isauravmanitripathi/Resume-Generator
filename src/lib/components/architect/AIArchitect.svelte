@@ -1,10 +1,11 @@
 <script lang="ts">
-  import { Sparkles, User, Briefcase, GraduationCap, Hammer, FolderGit2, ChevronDown, Loader2 } from 'lucide-svelte';
+  import { Sparkles, User, Briefcase, GraduationCap, Hammer, FolderGit2, ChevronDown, Loader2, Zap, ChevronRight } from 'lucide-svelte';
   import type { Profile } from '$lib/db';
   import { db } from '$lib/db';
   import { promptDb } from '$lib/promptDb';
   import { generateTailoredContent } from '../../../routes/guides/openai/openai';
   import { generateOpenRouterContent } from '../../../routes/guides/openrouter/openrouter';
+  import { toasts } from '$lib/toastStore';
 
   interface Props {
     profile: Profile | null;
@@ -21,6 +22,12 @@
   let numPoints = $state(4);
   let numSkills = $state(10);
   let yearsOfExperience = $state('');
+
+  // Bulk tailoring state
+  let showBulkPanel = $state(false);
+  let bulkSections = $state({ summary: true, experience: true, projects: true });
+  let bulkProgress = $state<{ current: number; total: number; label: string } | null>(null);
+  let isBulkGenerating = $state(false);
 
   // Derive the options based on profile (only for types that need a dropdown)
   let options = $derived(() => {
@@ -49,119 +56,158 @@
     }
   });
 
-  async function executeTailoring() {
-    if (!profile) return;
-    
-    isGenerating = true;
+  // Core generation logic — shared between single and bulk modes
+  async function generateForItem(
+    type: 'summary' | 'experience' | 'education' | 'skills' | 'projects',
+    id: string | null
+  ): Promise<string> {
+    if (!profile) throw new Error("No profile loaded.");
+
+    const settings = await db.settings.get('app');
+    const activeProvider = settings?.activeProvider || 'openai';
+    const model = activeProvider === 'openrouter'
+      ? settings?.providers.openrouter.model || 'openai/gpt-5-mini'
+      : settings?.providers.openai.model || 'gpt-4.1';
+
+    let contextContent = "";
+    let promptId = "resume-tailor";
+
+    if (type === 'summary') {
+      const src = resolvedProfile || profile;
+      const expContext = src.experience
+        .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
+        .join('\n\n');
+      const skillsList = src.skills.map(s => s.name).filter(Boolean).join(', ');
+      const projContext = src.projects
+        .map(p => `${p.name}:\n${p.raw_context || ''}`)
+        .filter(p => p.trim().length > 0)
+        .join('\n\n');
+      contextContent = [
+        `Years of Experience: ${yearsOfExperience || 'Not specified'}`,
+        `\nExperience:\n${expContext}`,
+        skillsList ? `\nSkills: ${skillsList}` : '',
+        projContext ? `\nProjects:\n${projContext}` : ''
+      ].join('\n');
+      promptId = "summary-gen";
+    } else if (type === 'experience') {
+      const item = profile.experience.find(e => e.id === id);
+      contextContent = item ? `${item.role} at ${item.company}: ${item.raw_context || ''}` : "";
+    } else if (type === 'education') {
+      const item = profile.education.find(e => e.id === id);
+      contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}. Details: ${item.raw_context || ''}` : "";
+      promptId = "education-tailor";
+    } else if (type === 'skills') {
+      const src = resolvedProfile || profile;
+      const expContext = src.experience
+        .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
+        .join('\n\n');
+      const projContext = src.projects
+        .map(p => `${p.name}:\n${p.raw_context || ''}`)
+        .join('\n\n');
+      contextContent = `Experience:\n${expContext}\n\nProjects:\n${projContext}`;
+      promptId = "skill-gen";
+    } else if (type === 'projects') {
+      const item = profile.projects.find(p => p.id === id);
+      contextContent = item ? `${item.name}: ${item.description}. ${item.raw_context || ''}` : "";
+      promptId = "project-tailor";
+    }
+
+    const template = await promptDb.prompts.get(promptId);
+    if (!template) throw new Error("Tailoring prompt not found.");
+
+    const systemPrompt = template.systemPrompt
+      .replace('{{numPoints}}', numPoints.toString())
+      .replace('{{numSkills}}', numSkills.toString()) + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
+
+    const userPrompt = template.userPromptTemplate
+      .replace('{{experience}}', contextContent)
+      .replace('{{education}}', contextContent)
+      .replace('{{project}}', contextContent)
+      .replace('{{context}}', contextContent)
+      .replace('{{profileSummary}}', contextContent)
+      .replace('{{jobDescription}}', jobDescription)
+      .replace('{{numPoints}}', numPoints.toString())
+      .replace('{{numSkills}}', numSkills.toString());
+
+    let rawResponse: string;
+    if (activeProvider === 'openrouter') {
+      rawResponse = await generateOpenRouterContent(systemPrompt, userPrompt, model);
+    } else {
+      rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
+    }
 
     try {
-      // 1. Get Settings for provider and model
-      const settings = await db.settings.get('app');
-      const activeProvider = settings?.activeProvider || 'openai';
-      const model = activeProvider === 'openrouter' 
-        ? settings?.providers.openrouter.model || 'openai/gpt-5-mini'
-        : settings?.providers.openai.model || 'gpt-4.1';
+      let cleanJson = rawResponse.trim();
+      const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
+      if (jsonMatch) cleanJson = jsonMatch[0];
+      const parsed = JSON.parse(cleanJson);
+      return parsed.tailored_content || rawResponse;
+    } catch {
+      return rawResponse.replace(/^Professional Summary:\s*/i, '').trim();
+    }
+  }
 
-      // 2. Identify Context Content
-      let contextContent = "";
-      let promptId = "resume-tailor";
-
-      if (selectedType === 'summary') {
-        const src = resolvedProfile || profile;
-        const expContext = src.experience
-          .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
-          .join('\n\n');
-        const skillsList = src.skills.map(s => s.name).filter(Boolean).join(', ');
-        const projContext = src.projects
-          .map(p => `${p.name}:\n${p.raw_context || ''}`)
-          .filter(p => p.trim().length > 0)
-          .join('\n\n');
-        contextContent = [
-          `Years of Experience: ${yearsOfExperience || 'Not specified'}`,
-          `\nExperience:\n${expContext}`,
-          skillsList ? `\nSkills: ${skillsList}` : '',
-          projContext ? `\nProjects:\n${projContext}` : ''
-        ].join('\n');
-        promptId = "summary-gen";
-      } else if (selectedType === 'experience') {
-        const item = profile.experience.find(e => e.id === selectedId);
-        contextContent = item ? `${item.role} at ${item.company}: ${item.raw_context || ''}` : "";
-      } else if (selectedType === 'education') {
-        const item = profile.education.find(e => e.id === selectedId);
-        contextContent = item ? `${item.studyType} in ${item.area} at ${item.institution}. Details: ${item.raw_context || ''}` : "";
-        promptId = "education-tailor";
-      } else if (selectedType === 'skills') {
-        const src = resolvedProfile || profile;
-        const expContext = src.experience
-          .map(e => `${e.role} at ${e.company}:\n${e.raw_context || ''}`)
-          .join('\n\n');
-        const projContext = src.projects
-          .map(p => `${p.name}:\n${p.raw_context || ''}`)
-          .join('\n\n');
-        contextContent = `Experience:\n${expContext}\n\nProjects:\n${projContext}`;
-        promptId = "skill-gen";
-      } else if (selectedType === 'projects') {
-        const item = profile.projects.find(p => p.id === selectedId);
-        contextContent = item ? `${item.name}: ${item.description}. ${item.raw_context || ''}` : "";
-        promptId = "project-tailor";
-      }
-
-      // 3. Get the Prompt
-      const template = await promptDb.prompts.get(promptId);
-      if (!template) throw new Error("Tailoring prompt not found.");
-
-      // 4. Wrap with JSON instruction
-      const systemPrompt = template.systemPrompt
-         .replace('{{numPoints}}', numPoints.toString())
-         .replace('{{numSkills}}', numSkills.toString()) + "\nIMPORTANT: Return your response strictly as a JSON object: {\"tailored_content\": \"your content here\"}.";
-
-       const userPrompt = template.userPromptTemplate
-        .replace('{{experience}}', contextContent)
-        .replace('{{education}}', contextContent)
-        .replace('{{project}}', contextContent)
-        .replace('{{context}}', contextContent)
-        .replace('{{profileSummary}}', contextContent)
-        .replace('{{jobDescription}}', jobDescription)
-        .replace('{{numPoints}}', numPoints.toString())
-        .replace('{{numSkills}}', numSkills.toString());
-
-      // 5. Call AI based on active provider
-      let rawResponse: string;
-      if (activeProvider === 'openrouter') {
-        rawResponse = await generateOpenRouterContent(systemPrompt, userPrompt, model);
-      } else {
-        rawResponse = await generateTailoredContent(systemPrompt, userPrompt, model);
-      }
-      
-      let tailoredContent = "";
-      try {
-        // Attempt to clean the response if it contains markdown or extra text
-        let cleanJson = rawResponse.trim();
-        // Extract JSON if embedded in text
-        const jsonMatch = cleanJson.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          cleanJson = jsonMatch[0];
-        }
-
-        const parsed = JSON.parse(cleanJson);
-        tailoredContent = parsed.tailored_content || rawResponse;
-      } catch (e) {
-        // Fallback: If JSON fails, strip know prefixes if possible, or just use raw
-        tailoredContent = rawResponse.replace(/^Professional Summary:\s*/i, '').trim();
-      }
-
-      // Notify parent to refresh/preview
-      onGenerate({ 
-        type: selectedType, 
-        id: selectedId, 
-        content: tailoredContent 
-      }); 
-
+  async function executeTailoring() {
+    if (!profile) return;
+    isGenerating = true;
+    try {
+      const content = await generateForItem(selectedType, selectedId);
+      onGenerate({ type: selectedType, id: selectedId, content });
     } catch (err) {
       console.error(err);
     } finally {
       isGenerating = false;
     }
+  }
+
+  async function executeBulkTailoring() {
+    if (!profile || !jobDescription) return;
+
+    // Build queue of items to process based on selections
+    const queue: { type: 'summary' | 'experience' | 'projects'; id: string | null; label: string }[] = [];
+
+    if (bulkSections.summary) {
+      queue.push({ type: 'summary', id: null, label: 'Summary' });
+    }
+    if (bulkSections.experience) {
+      profile.experience.forEach(e => queue.push({
+        type: 'experience',
+        id: e.id,
+        label: `${e.role} at ${e.company}`
+      }));
+    }
+    if (bulkSections.projects) {
+      profile.projects.forEach(p => queue.push({
+        type: 'projects',
+        id: p.id,
+        label: p.name
+      }));
+    }
+
+    if (queue.length === 0) return;
+
+    isBulkGenerating = true;
+    isGenerating = true;
+
+    for (let i = 0; i < queue.length; i++) {
+      const item = queue[i];
+      bulkProgress = { current: i + 1, total: queue.length, label: item.label };
+
+      const toastId = toasts.add(`Tailoring: ${item.label}`, 'loading');
+      try {
+        const content = await generateForItem(item.type, item.id);
+        onGenerate({ type: item.type, id: item.id, content });
+        toasts.update(toastId, { message: `Done: ${item.label}`, type: 'success' });
+      } catch (err) {
+        console.error(`Failed to tailor "${item.label}":`, err);
+        toasts.update(toastId, { message: `Failed: ${item.label}`, type: 'error' });
+        // Continue with next item even if one fails
+      }
+    }
+
+    bulkProgress = null;
+    isBulkGenerating = false;
+    isGenerating = false;
   }
 </script>
 
@@ -169,9 +215,9 @@
   <!-- Context Selection -->
   <div class="space-y-3">
     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI Focus Area</label>
-    
+
     <div class="grid grid-cols-5 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
-      <button 
+      <button
         onclick={() => selectedType = 'summary'}
         class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
         {selectedType === 'summary' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
@@ -179,7 +225,7 @@
         <User size={14} />
         <span class="text-[9px] font-black uppercase tracking-tighter mt-1">Summary</span>
       </button>
-      <button 
+      <button
         onclick={() => selectedType = 'experience'}
         class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
         {selectedType === 'experience' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
@@ -187,7 +233,7 @@
         <Briefcase size={14} />
         <span class="text-[9px] font-black uppercase tracking-tighter mt-1">Exp</span>
       </button>
-      <button 
+      <button
         onclick={() => selectedType = 'education'}
         class="flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all
         {selectedType === 'education' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}"
@@ -303,20 +349,21 @@
 
   <div class="space-y-3">
     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest" for="jd">Target Job Description</label>
-    <textarea 
+    <textarea
       id="jd"
       bind:value={jobDescription}
       placeholder="Paste the target job description here..."
       class="w-full h-[300px] p-5 bg-slate-50 border border-slate-200 rounded-3xl text-sm leading-relaxed text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all resize-none shadow-inner"
     ></textarea>
   </div>
-  
-  <button 
+
+  <!-- Single item generate button -->
+  <button
     onclick={executeTailoring}
     class="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 group disabled:opacity-50"
     disabled={!jobDescription || isGenerating}
   >
-    {#if isGenerating}
+    {#if isGenerating && !isBulkGenerating}
       <Loader2 size={16} class="animate-spin" />
       Architecting...
     {:else}
@@ -324,4 +371,124 @@
       Build Tailored Resume
     {/if}
   </button>
+
+  <!-- Auto-Tailor All toggle button -->
+  <button
+    onclick={() => showBulkPanel = !showBulkPanel}
+    class="w-full py-3 bg-white border-2 border-dashed border-slate-200 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-[0.15em] hover:border-violet-300 hover:text-violet-600 hover:bg-violet-50/50 transition-all flex items-center justify-center gap-2 group"
+    disabled={isGenerating}
+  >
+    <Zap size={14} class="group-hover:text-violet-600 transition-colors" />
+    Auto-Tailor Entire Resume
+    <ChevronRight size={12} class="transition-transform duration-200 {showBulkPanel ? 'rotate-90' : ''}" />
+  </button>
+
+  <!-- Bulk Tailoring Panel -->
+  {#if showBulkPanel}
+    <div class="space-y-4 p-5 bg-violet-50/60 border border-violet-200 rounded-3xl animate-in fade-in slide-in-from-top-2 duration-300">
+      <div class="flex items-start gap-3">
+        <div class="p-1.5 bg-violet-100 text-violet-600 rounded-lg shrink-0 mt-0.5">
+          <Zap size={12} />
+        </div>
+        <p class="text-[10px] font-bold text-violet-700 leading-relaxed">
+          Rewrites every selected section one by one using the job description above. Watch your resume build itself live.
+        </p>
+      </div>
+
+      <!-- Years of experience for bulk (shared with single-mode) -->
+      <div class="space-y-1.5">
+        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Years of Experience (for Summary)</label>
+        <input
+          type="number"
+          min="0"
+          max="50"
+          placeholder="e.g. 3"
+          bind:value={yearsOfExperience}
+          class="w-full px-4 py-3 bg-white border border-violet-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-violet-400/20 focus:bg-white transition-all"
+        />
+      </div>
+
+      <!-- Section checkboxes -->
+      <div class="space-y-2">
+        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sections to Rewrite</label>
+
+        <label class="flex items-center gap-3 p-3 bg-white border border-violet-100 rounded-xl cursor-pointer hover:border-violet-300 transition-all group">
+          <input
+            type="checkbox"
+            bind:checked={bulkSections.summary}
+            class="w-4 h-4 rounded accent-violet-600 cursor-pointer"
+          />
+          <User size={13} class="text-blue-500 shrink-0" />
+          <span class="text-xs font-bold text-slate-700">Summary</span>
+        </label>
+
+        <label class="flex items-center gap-3 p-3 bg-white border border-violet-100 rounded-xl cursor-pointer hover:border-violet-300 transition-all group">
+          <input
+            type="checkbox"
+            bind:checked={bulkSections.experience}
+            class="w-4 h-4 rounded accent-violet-600 cursor-pointer"
+          />
+          <Briefcase size={13} class="text-emerald-500 shrink-0" />
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-slate-700">All Experiences</span>
+            {#if profile && profile.experience.length > 0}
+              <span class="ml-2 text-[10px] font-bold text-slate-400">{profile.experience.length} job{profile.experience.length !== 1 ? 's' : ''}</span>
+            {/if}
+          </div>
+        </label>
+
+        <label class="flex items-center gap-3 p-3 bg-white border border-violet-100 rounded-xl cursor-pointer hover:border-violet-300 transition-all group">
+          <input
+            type="checkbox"
+            bind:checked={bulkSections.projects}
+            class="w-4 h-4 rounded accent-violet-600 cursor-pointer"
+          />
+          <FolderGit2 size={13} class="text-rose-500 shrink-0" />
+          <div class="flex-1 min-w-0">
+            <span class="text-xs font-bold text-slate-700">All Projects</span>
+            {#if profile && profile.projects.length > 0}
+              <span class="ml-2 text-[10px] font-bold text-slate-400">{profile.projects.length} project{profile.projects.length !== 1 ? 's' : ''}</span>
+            {/if}
+          </div>
+        </label>
+      </div>
+
+      <!-- Progress bar (shown while running) -->
+      {#if bulkProgress}
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-black text-violet-600 uppercase tracking-widest">
+              Tailoring {bulkProgress.current} of {bulkProgress.total}
+            </span>
+            <span class="text-[10px] font-bold text-slate-400">{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
+          </div>
+          <div class="w-full h-1.5 bg-violet-100 rounded-full overflow-hidden">
+            <div
+              class="h-full bg-violet-500 rounded-full transition-all duration-500"
+              style="width: {(bulkProgress.current / bulkProgress.total) * 100}%"
+            ></div>
+          </div>
+          <p class="text-[10px] font-bold text-slate-500 truncate">
+            <Loader2 size={10} class="inline animate-spin mr-1" />
+            {bulkProgress.label}
+          </p>
+        </div>
+      {/if}
+
+      <!-- Auto-Tailor button -->
+      <button
+        onclick={executeBulkTailoring}
+        class="w-full py-4 bg-violet-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-violet-700 transition-all shadow-lg shadow-violet-200 flex items-center justify-center gap-3 group disabled:opacity-50"
+        disabled={!jobDescription || isGenerating || (!bulkSections.summary && !bulkSections.experience && !bulkSections.projects)}
+      >
+        {#if isBulkGenerating && bulkProgress}
+          <Loader2 size={16} class="animate-spin" />
+          {bulkProgress.current}/{bulkProgress.total} — {bulkProgress.label}
+        {:else}
+          <Zap size={16} class="group-hover:animate-pulse" />
+          Start Auto-Tailor
+        {/if}
+      </button>
+    </div>
+  {/if}
 </div>
