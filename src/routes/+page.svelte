@@ -241,37 +241,29 @@
       }
     }
 
-    const resume = await db.resumes.get(activeResumeId);
-    if (!resume) return;
+    // Atomic modify — safe for parallel calls, no read-modify-write race condition
+    await db.resumes.where('id').equals(activeResumeId!).modify((resume: ResumeVersion) => {
+      if (tailored.type === 'summary') {
+        resume.tailoredContent.summary = tailored.content;
+      } else if (tailored.type === 'experience' && tailored.id) {
+        resume.tailoredContent.experience[tailored.id] = tailored.content;
+      } else if (tailored.type === 'education' && tailored.id) {
+        resume.tailoredContent.education[tailored.id] = tailored.content;
+      } else if (tailored.type === 'skills') {
+        const skillNames = tailored.content
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        resume.tailoredContent.generatedSkills = skillNames;
+      } else if (tailored.type === 'projects' && tailored.id) {
+        if (!resume.tailoredContent.projects) resume.tailoredContent.projects = {};
+        resume.tailoredContent.projects[tailored.id] = tailored.content;
+      }
+    });
 
-    if (tailored.type === 'summary') {
-      resume.tailoredContent.summary = tailored.content;
-    } else if (tailored.type === 'experience' && tailored.id) {
-      resume.tailoredContent.experience[tailored.id] = tailored.content;
-    } else if (tailored.type === 'education' && tailored.id) {
-      resume.tailoredContent.education[tailored.id] = tailored.content;
-    } else if (tailored.type === 'skills') {
-      // Generated skills list — comma-separated string from AI
-      const skillNames = tailored.content
-        .split(',')
-        .map((s: string) => s.trim())
-        .filter((s: string) => s.length > 0);
-      resume.tailoredContent.generatedSkills = skillNames;
-    } else if (tailored.type === 'projects' && tailored.id) {
-      if (!resume.tailoredContent.projects) resume.tailoredContent.projects = {};
-      resume.tailoredContent.projects[tailored.id] = tailored.content;
-    }
-
-    await db.resumes.update(activeResumeId, { tailoredContent: resume.tailoredContent });
-    
-    // Optimistic Update: Update local state immediately without waiting for DB fetch
-    if (activeResume) {
-       // Since activeResume is $state, mutating it triggers reactivity
-       activeResume.tailoredContent = resume.tailoredContent;
-    }
-
+    // Reload local state so live preview updates
+    await loadResumeDetail(activeResumeId!);
     toasts.add("Resume Tailored Successfully", "success");
-    await refreshData();
   }
 
   async function handleSaveCustomCode(code: string) {

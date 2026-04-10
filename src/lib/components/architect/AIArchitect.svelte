@@ -26,7 +26,8 @@
   // Bulk tailoring state
   let showBulkPanel = $state(false);
   let bulkSections = $state({ summary: true, experience: true, projects: true });
-  let bulkProgress = $state<{ current: number; total: number; label: string } | null>(null);
+  let bulkCompleted = $state(0);
+  let bulkTotal = $state(0);
   let isBulkGenerating = $state(false);
 
   // Derive the options based on profile (only for types that need a dropdown)
@@ -188,26 +189,30 @@
 
     isBulkGenerating = true;
     isGenerating = true;
+    bulkCompleted = 0;
+    bulkTotal = queue.length;
 
-    for (let i = 0; i < queue.length; i++) {
-      const item = queue[i];
-      bulkProgress = { current: i + 1, total: queue.length, label: item.label };
+    // Fire all calls in parallel — each saves atomically as it completes
+    await Promise.allSettled(
+      queue.map(async (item) => {
+        const toastId = toasts.add(`Tailoring: ${item.label}`, 'loading');
+        try {
+          const content = await generateForItem(item.type, item.id);
+          onGenerate({ type: item.type, id: item.id, content });
+          toasts.update(toastId, { message: `Done: ${item.label}`, type: 'success' });
+        } catch (err) {
+          console.error(`Failed to tailor "${item.label}":`, err);
+          toasts.update(toastId, { message: `Failed: ${item.label}`, type: 'error' });
+        } finally {
+          bulkCompleted++;
+        }
+      })
+    );
 
-      const toastId = toasts.add(`Tailoring: ${item.label}`, 'loading');
-      try {
-        const content = await generateForItem(item.type, item.id);
-        onGenerate({ type: item.type, id: item.id, content });
-        toasts.update(toastId, { message: `Done: ${item.label}`, type: 'success' });
-      } catch (err) {
-        console.error(`Failed to tailor "${item.label}":`, err);
-        toasts.update(toastId, { message: `Failed: ${item.label}`, type: 'error' });
-        // Continue with next item even if one fails
-      }
-    }
-
-    bulkProgress = null;
     isBulkGenerating = false;
     isGenerating = false;
+    bulkCompleted = 0;
+    bulkTotal = 0;
   }
 </script>
 
@@ -453,25 +458,42 @@
         </label>
       </div>
 
-      <!-- Progress bar (shown while running) -->
-      {#if bulkProgress}
+      <!-- Bullet points config for bulk mode -->
+      <div class="p-4 bg-white border border-violet-100 rounded-2xl">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Bullets per Experience / Project</span>
+          <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{numPoints} Bullets</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="text-[10px] font-bold text-slate-400">Short</span>
+          <input
+            type="range"
+            min="3"
+            max="8"
+            step="1"
+            bind:value={numPoints}
+            class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-violet-600 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+          />
+          <span class="text-[10px] font-bold text-slate-400">Detailed</span>
+        </div>
+      </div>
+
+      <!-- Progress bar (shown while running in parallel) -->
+      {#if isBulkGenerating && bulkTotal > 0}
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[10px] font-black text-violet-600 uppercase tracking-widest">
-              Tailoring {bulkProgress.current} of {bulkProgress.total}
+            <span class="text-[10px] font-black text-violet-600 uppercase tracking-widest flex items-center gap-1">
+              <Loader2 size={10} class="animate-spin" />
+              Running {bulkTotal} calls in parallel
             </span>
-            <span class="text-[10px] font-bold text-slate-400">{Math.round((bulkProgress.current / bulkProgress.total) * 100)}%</span>
+            <span class="text-[10px] font-bold text-slate-400">{bulkCompleted}/{bulkTotal} done</span>
           </div>
           <div class="w-full h-1.5 bg-violet-100 rounded-full overflow-hidden">
             <div
-              class="h-full bg-violet-500 rounded-full transition-all duration-500"
-              style="width: {(bulkProgress.current / bulkProgress.total) * 100}%"
+              class="h-full bg-violet-500 rounded-full transition-all duration-300"
+              style="width: {bulkTotal > 0 ? (bulkCompleted / bulkTotal) * 100 : 0}%"
             ></div>
           </div>
-          <p class="text-[10px] font-bold text-slate-500 truncate">
-            <Loader2 size={10} class="inline animate-spin mr-1" />
-            {bulkProgress.label}
-          </p>
         </div>
       {/if}
 
@@ -481,9 +503,9 @@
         class="w-full py-4 bg-violet-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-violet-700 transition-all shadow-lg shadow-violet-200 flex items-center justify-center gap-3 group disabled:opacity-50"
         disabled={!jobDescription || isGenerating || (!bulkSections.summary && !bulkSections.experience && !bulkSections.projects)}
       >
-        {#if isBulkGenerating && bulkProgress}
+        {#if isBulkGenerating}
           <Loader2 size={16} class="animate-spin" />
-          {bulkProgress.current}/{bulkProgress.total} — {bulkProgress.label}
+          {bulkCompleted}/{bulkTotal} Completed...
         {:else}
           <Zap size={16} class="group-hover:animate-pulse" />
           Start Auto-Tailor
